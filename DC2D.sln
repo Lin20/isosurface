@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DC2D", "DC2D\DC2D\DC2D.csproj", "{B0BEEFB2-4494-4CC6-A980-147C5AB84E17}"
+EndProject
+Project("{96E2B04D-8817-42C6-938A-82C39BA4D311}") = "DC2DContent", "DC2D\DC2DContent\DC2DContent.contentproj", "{00295EF2-AC3E-46E5-969F-568ACDB5A960}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B0BEEFB2-4494-4CC6-A980-147C5AB84E17}.Debug|x86.ActiveCfg = Debug|x86
+		{B0BEEFB2-4494-4CC6-A980-147C5AB84E17}.Debug|x86.Build.0 = Debug|x86
+		{B0BEEFB2-4494-4CC6-A980-147C5AB84E17}.Release|x86.ActiveCfg = Release|x86
+		{B0BEEFB2-4494-4CC6-A980-147C5AB84E17}.Release|x86.Build.0 = Release|x86
+		{00295EF2-AC3E-46E5-969F-568ACDB5A960}.Debug|x86.ActiveCfg = Debug|x86
+		{00295EF2-AC3E-46E5-969F-568ACDB5A960}.Release|x86.ActiveCfg = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
