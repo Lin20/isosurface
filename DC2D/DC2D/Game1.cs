@@ -19,7 +19,8 @@ namespace DC2D
 		GraphicsDeviceManager graphics;
 		SpriteBatch spriteBatch;
 		BasicEffect effect;
-		DC dc;
+
+		DC3D dc;
 
 		const int tile_size = 16;
 		const int resolution = 60;
@@ -42,13 +43,21 @@ namespace DC2D
 			IsMouseVisible = true;
 
 			effect = new BasicEffect(GraphicsDevice);
-			effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+			if (true)
+			{
+				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * 48.0f, Vector3.Zero, Vector3.Up);
+				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 1.0f, 1.0f, 1000.0f);
+				effect.EnableDefaultLighting();
+			}
+			else
+				effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 			effect.VertexColorEnabled = true;
 
 			//VertexPositionColor[] vertices = { new VertexPositionColor(new Vector3(10, 10, 0), Color.Red), new VertexPositionColor(new Vector3(10, 60, 0), Color.Blue) };
 			//buffer.SetData<VertexPositionColor>(vertices, 0, 2);
 
-			dc = new DC(GraphicsDevice, 64, tile_size);
+
+			dc = new DC3D(GraphicsDevice, 64, tile_size);
 			dc.Contour();
 
 			pixel = new Texture2D(GraphicsDevice, tile_size, tile_size);
@@ -82,17 +91,20 @@ namespace DC2D
 		}
 
 		int mx, my;
+		float rx, ry;
 		protected override void Update(GameTime gameTime)
 		{
 			// Allows the game to exit
-			if(Keyboard.GetState().IsKeyDown(Keys.Escape))
+			if (Keyboard.GetState().IsKeyDown(Keys.Escape))
 				this.Exit();
 
 			mx = Mouse.GetState().X / tile_size;
-			my = Mouse.GetState().Y / tile_size ;
+			my = Mouse.GetState().Y / tile_size;
+			rx = (float)Mouse.GetState().X / (float)resolution * MathHelper.TwoPi;
+			ry = (float)Mouse.GetState().Y / (float)resolution * MathHelper.TwoPi;
 			if (Mouse.GetState().LeftButton == ButtonState.Pressed && mx > 0 && my > 0 && mx < resolution - 1 && my < resolution - 1)
 			{
-				dc.GenerateAt(mx, my);
+				//dc.GenerateAt(mx, my);
 			}
 
 			base.Update(gameTime);
@@ -104,14 +116,17 @@ namespace DC2D
 		/// <param name="gameTime">Provides a snapshot of timing values.</param>
 		protected override void Draw(GameTime gameTime)
 		{
-			GraphicsDevice.Clear(Color.WhiteSmoke);
+			//GraphicsDevice.Clear(Color.WhiteSmoke);
+			GraphicsDevice.Clear(Color.DimGray);
 
-			effect.CurrentTechnique.Passes[0].Apply();
-			dc.Draw();
+			Matrix m = Matrix.CreateTranslation(new Vector3(-resolution / 2, -resolution / 2, -resolution / 2));
+			effect.World = m * Matrix.CreateFromYawPitchRoll(rx, ry, 0);
+			//effect.CurrentTechnique.Passes[0].Apply();
+			dc.Draw(effect);
 
-			spriteBatch.Begin();
-			spriteBatch.Draw(pixel, new Vector2(mx * tile_size, my * tile_size), Color.White);
-			spriteBatch.End();
+			//spriteBatch.Begin();
+			//spriteBatch.Draw(pixel, new Vector2(mx * tile_size, my * tile_size), Color.White);
+			//spriteBatch.End();
 
 			base.Draw(gameTime);
 		}

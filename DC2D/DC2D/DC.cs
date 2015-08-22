@@ -166,8 +166,8 @@ namespace DC2D
 				int c1 = edges[i, 0];
 				int c2 = edges[i, 1];
 
-				int v1 = vertex_indexes[x + c1 / 2, y + c1 % 2];
-				int v2 = vertex_indexes[x + c2 / 2, y + c2 % 2];
+				int v1 = vertex_indexes[x + c1 % 2, y + c1 / 2];
+				int v2 = vertex_indexes[x + c2 % 2, y + c2 / 2];
 				if (v1 == 0 || v2 == 0)
 					continue;
 
