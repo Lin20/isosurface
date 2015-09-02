@@ -111,6 +111,7 @@ namespace DC2D
 		public Vector2 Solve2(float svd_tol, int sweeps, float pinv_tol)
 		{
 			Vector2 x = new Vector2(mass_point.X, mass_point.Y) / (float)Intersections.Count;
+			//return x;
 			float error = GetDistanceSquared(x);
 
 			if (Math.Abs(error) >= 0.0001f)

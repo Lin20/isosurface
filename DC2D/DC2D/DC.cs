@@ -53,7 +53,7 @@ namespace DC2D
 				for (int y = 0; y < resolution; y++)
 				{
 					//map[x, y] = Circle(new Vector2(x, y));
-					map[x, y] = Sample(new Vector2(x, y));
+					map[x, y] = Sampler.Sample(new Vector2(x, y));
 					//map[x, y] = Math.Max(Cuboid(new Vector2(x - 1, y - 1)), Cuboid(new Vector2(x + 12, y + 12)));
 					//map[x, y] = Noise(new Vector2(x, y));
 				}
@@ -124,8 +124,8 @@ namespace DC2D
 				Vector2 p1 = new Vector2((float)((c1 / 2)), (float)((c1 % 2)));
 				Vector2 p2 = new Vector2((float)((c2 / 2)), (float)((c2 % 2)));
 
-				Vector2 intersection = GetIntersection(p1, p2, d1, d2);
-				Vector2 normal = GetNormal(intersection + new Vector2(x, y));//GetNormal(x, y);
+				Vector2 intersection = Sampler.GetIntersection(p1, p2, d1, d2);
+				Vector2 normal = Sampler.GetNormal(intersection + new Vector2(x, y));//GetNormal(x, y);
 
 				qef.Add(intersection, normal);
 			}
@@ -180,50 +180,6 @@ namespace DC2D
 			index_location += index;
 		}
 
-		private Vector2 GetIntersection(Vector2 p1, Vector2 p2, float d1, float d2)
-		{
-			//do a simple linear interpolation
-			return p1 + (-d1) * (p2 - p1) / (d2 - d1);
-		}
-
-		private float Circle(Vector2 pos)
-		{
-			float radius = (float)resolution / 4.0f;
-			Vector2 origin = new Vector2(resolution / 2, resolution / 2);
-			return (pos - origin).Length() - radius;
-		}
-
-		float Cuboid(Vector2 pos)
-		{
-			float radius = (float)resolution / 8.0f;
-			Vector2 local = pos - new Vector2(resolution / 2, resolution / 2);
-			Vector2 d = new Vector2(Math.Abs(local.X), Math.Abs(local.Y)) - new Vector2(radius, radius);
-			float m = Math.Max(d.X, d.Y);
-			Vector2 max = Vector2.Max(d, Vector2.Zero);
-			return Math.Min(m, max.Length());
-		}
-
-		float Sample(Vector2 pos)
-		{
-			//return sdTorus88(pos);
-			return Math.Min(Circle(pos), Cuboid(pos - new Vector2(12, 12)));
-			//return Circle(pos);
-			//return Cuboid(pos);
-		}
-
-		float Noise(Vector2 pos)
-		{
-			double d = pos.Y - Math.Sin((pos.X * 0.34172f + pos.X * 0.23111 + pos.X * pos.X) * 0.01f) * 16.0f - 32;
-			return (float)d;
-		}
-
-		float sdTorus88(Vector2 pos)
-		{
-			Vector2 t = new Vector2(resolution / 4, resolution / 4);
-			Vector2 q = new Vector2(pos.X - resolution / 2 - t.X, pos.Y - resolution / 2);
-			return q.Length() - t.Y;
-		}
-
 		private Vector2 GetNormal(int x, int y)
 		{
 			//can't compute gradient
@@ -235,19 +191,7 @@ namespace DC2D
 			return gradient;
 		}
 
-		private Vector2 GetNormal(Vector2 v)
-		{
-			//can't compute gradient
-			float h = 0.001f;
-			float dxp = Sample(new Vector2(v.X + h, v.Y));
-			float dxm = Sample(new Vector2(v.X - h, v.Y));
-			float dyp = Sample(new Vector2(v.X, v.Y + h));
-			float dym = Sample(new Vector2(v.X,  v.Y - h));
-			//Vector2 gradient = new Vector2(map[x + 1, y] - map[x - 1, y], map[x, y + 1] - map[x, y - 1]);
-			Vector2 gradient = new Vector2(dxp - dxm, dyp - dym);
-			gradient.Normalize();
-			return gradient;
-		}
+		
 
 		public void Draw()
 		{
