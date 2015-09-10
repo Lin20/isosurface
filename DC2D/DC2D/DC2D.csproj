@@ -76,9 +76,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ADC.cs" />
+    <Compile Include="ADC3D.cs" />
     <Compile Include="DC.cs" />
     <Compile Include="DC3D.cs" />
     <Compile Include="DMS.cs" />
+    <Compile Include="Octree.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
@@ -86,7 +88,7 @@
     <Compile Include="QEF3D.cs" />
     <Compile Include="Quadtree.cs" />
     <Compile Include="Sampler.cs" />
-    <Compile Include="SVD.cs" />
+    <Compile Include="SimplexNoise.cs" />
     <Compile Include="VertexPositionColorNormal.cs" />
   </ItemGroup>
   <ItemGroup>

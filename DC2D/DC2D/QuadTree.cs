@@ -54,7 +54,7 @@ namespace DC2D
 
 		private static int[,] edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 		private static int[, ,] edge_mask = new int[,,] { { { 2, 0 }, { 3, 1 } }, { { 1, 0 }, { 3, 2 } } };
-		private static int[,] process_edge_mask = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
+		private static int[,] process_edge_mask = new int[,] { { 0, 2 }, { 1, 3 } };
 
 		public int Build(Vector2 min, int size, float threshold, List<VertexPositionColor> vertices, int grid_size)
 		{
@@ -171,14 +171,14 @@ namespace DC2D
 		{
 			if (node1 == null || node2 == null)
 				return;
-			if (node1.size != 1 || node2.size != 1)
+			if (node1.size != 1 || node2.size != 1 || node1.draw_info.index == -1 || node2.draw_info.index == -1)
 			{
 				QuadtreeNode leaf1;
 				QuadtreeNode leaf2;
 
 				for (int i = 0; i < 2; i++)
 				{
-					if (node1.size == 1)
+					if (node1.size == 1 && node1.draw_info.index != -1)
 						leaf1 = node1;
 					else
 					{
@@ -186,7 +186,7 @@ namespace DC2D
 						leaf1 = node1.children[c];
 					}
 
-					if (node2.size == 1)
+					if (node2.size == 1 && node2.draw_info.index != -1)
 						leaf2 = node2;
 					else
 					{
@@ -217,12 +217,12 @@ namespace DC2D
 					int m1 = (nodes[i].draw_info.corners >> c1) & 1;
 					int m2 = (nodes[i].draw_info.corners >> c2) & 1;
 
-					if (nodes[i].size < min_size)
+					//if (nodes[i].size <= min_size)
 					{
 						min_size = nodes[i].size;
+						if (!sign_change)
+							sign_change = m1 != m2;
 					}
-					if (!sign_change)
-						sign_change = m1 != m2;
 				}
 
 

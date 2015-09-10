@@ -119,7 +119,7 @@ namespace DC2D
 				for (int i = 0; i < deltas.Length; i++)
 				{
 					Vector2 new_point = new Vector2(x.X + deltas[i].X, x.Y + deltas[i].Y);
-					new_point = Vector2.Clamp(new_point, Vector2.Zero, Vector2.One);
+					//new_point = Vector2.Clamp(new_point, Vector2.Zero, Vector2.One);
 					float e = GetDistanceSquared(new_point);
 					if (e <= error)
 					{
@@ -131,6 +131,8 @@ namespace DC2D
 				}
 			}
 
+			if (x.X < 0 || x.Y < 0 || x.X >= 1 || x.Y >= 1)
+				x = new Vector2(mass_point.X, mass_point.Y) / (float)Intersections.Count;
 			return Vector2.Clamp(x, Vector2.Zero, Vector2.One);
 		}
 	}

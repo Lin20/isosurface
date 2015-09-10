@@ -79,7 +79,7 @@ namespace DC2D
 			vs[6] = new VertexPositionColor(new Vector3(x + 0 * size, y + 1 * size, 0), c);
 			vs[7] = new VertexPositionColor(new Vector3(x + 0 * size, y + 0 * size, 0), c);
 
-			if (node.type != QuadtreeNodeType.Leaf || node.draw_info.index == -1 || true)
+			if (node.type != QuadtreeNodeType.Leaf || node.draw_info.index == -1)
 			{
 				outline_buffer.SetData<VertexPositionColor>(outline_location * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 8, VertexPositionColor.VertexDeclaration.VertexStride);
 				outline_location += 8;
