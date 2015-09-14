@@ -20,6 +20,7 @@ namespace DC2D
 		SpriteBatch spriteBatch;
 		BasicEffect effect;
 
+		//TODO: Create simple interface to allow switching dual contouring method on-the-fly
 		ADC3D dc;
 
 		const int tile_size = 14;
@@ -35,7 +36,10 @@ namespace DC2D
 
 		protected override void Initialize()
 		{
-			GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+			RasterizerState rs = new RasterizerState();
+			rs.CullMode = CullMode.None;
+			//rs.FillMode = FillMode.WireFrame;
+			GraphicsDevice.RasterizerState = rs;
 			graphics.PreferredBackBufferWidth = tile_size * resolution;
 			graphics.PreferredBackBufferHeight = tile_size * resolution;
 			graphics.ApplyChanges();
@@ -43,9 +47,11 @@ namespace DC2D
 			IsMouseVisible = true;
 
 			effect = new BasicEffect(GraphicsDevice);
+
+			//Ugly method of switching between 2D and 3D; fix later
 			if (true)
 			{
-				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * 96.0f, Vector3.Zero, Vector3.Up);
+				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * 48.0f, Vector3.Zero, Vector3.Up);
 				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 1.0f, 1.0f, 1000.0f);
 				effect.EnableDefaultLighting();
 			}
@@ -120,7 +126,7 @@ namespace DC2D
 			GraphicsDevice.Clear(Color.DimGray);
 
 			Matrix m = Matrix.CreateTranslation(new Vector3(-resolution / 2, -resolution / 2, -resolution / 2));
-			effect.World = m * Matrix.CreateFromYawPitchRoll(rx, ry, 0);
+			effect.World = m;// *Matrix.CreateFromYawPitchRoll(rx, ry, 0);
 			//effect.CurrentTechnique.Passes[0].Apply();
 			//dc.Draw();
 			dc.Draw(effect);

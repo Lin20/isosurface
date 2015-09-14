@@ -43,7 +43,7 @@ namespace DC2D
 			position = Vector3.Zero;
 			size = 0;
 			children = new OctreeNode[8];
-			draw_info = new OctreeDrawInfo();
+			draw_info = null;
 		}
 
 		public OctreeNodeType type;
@@ -107,7 +107,30 @@ namespace DC2D
 			this.type = OctreeNodeType.Internal;
 			int v_index = 0;
 			ConstructNodes(ref v_index, vertices, grid_size);
+			Simplify(threshold);
 			return v_index;
+		}
+
+		public void GenerateVertexBuffer(List<VertexPositionColorNormal> vertices)
+		{
+			if (type != OctreeNodeType.Leaf)
+			{
+				for (int i = 0; i < 8; i++)
+				{
+					if (children[i] != null)
+						children[i].GenerateVertexBuffer(vertices);
+				}
+			}
+
+			if (type != OctreeNodeType.Internal)
+			{
+				if (draw_info == null)
+					return;
+
+				draw_info.index = vertices.Count;
+				Color c = new Color(draw_info.averageNormal * 0.5f + Vector3.One * 0.5f);
+				vertices.Add(new VertexPositionColorNormal(draw_info.position, c, draw_info.averageNormal));
+			}
 		}
 
 		public bool ConstructNodes(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
@@ -129,16 +152,14 @@ namespace DC2D
 
 				if (child.ConstructNodes(ref v_index, vertices, grid_size))
 					has_children = true;
+				else
+					child = null;
 				children[i] = child;
 			}
 
 			if (!has_children)
-			{
-				type = OctreeNodeType.Leaf;
 				return false;
-			}
 
-			type = OctreeNodeType.Internal;
 			return true;
 		}
 
@@ -186,10 +207,11 @@ namespace DC2D
 			Vector3 n = average_normal / (float)qef.Intersections.Count;
 			n.Normalize();
 			draw_info = new OctreeDrawInfo();
-			draw_info.position = qef.Solve2(0, 0, 0);
+			draw_info.position = position + qef.Solve2(0, 0, 0);
 			draw_info.corners = corners;
 			draw_info.index = v_index++;
-			vertices.Add(new VertexPositionColorNormal(position + draw_info.position, Color.LightGreen, n));
+			draw_info.averageNormal = n;
+			//vertices.Add(new VertexPositionColorNormal(position + draw_info.position, Color.LightGreen, n));
 
 			type = OctreeNodeType.Leaf;
 			return true;
@@ -238,7 +260,7 @@ namespace DC2D
 			if (nodes[0] == null || nodes[1] == null)
 				return;
 
-			if (nodes[0].size != 1 || nodes[1].size != 1)
+			if (nodes[0].type == OctreeNodeType.Internal || nodes[1].type == OctreeNodeType.Internal)
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -246,7 +268,7 @@ namespace DC2D
 
 					for (int j = 0; j < 2; j++)
 					{
-						if (nodes[j].size == 1)
+						if (nodes[j].type != OctreeNodeType.Internal)
 							face_nodes[j] = nodes[j];
 						else
 							face_nodes[j] = nodes[j].children[faceProcFaceMask[direction, i, j]];
@@ -267,7 +289,7 @@ namespace DC2D
 
 					for (int j = 0; j < 4; j++)
 					{
-						if (nodes[orders[faceProcEdgeMask[direction, i, 0], j]].size == 1 || nodes[orders[faceProcEdgeMask[direction, i, 0], j]].type == OctreeNodeType.Pseudo)
+						if (nodes[orders[faceProcEdgeMask[direction, i, 0], j]].type == OctreeNodeType.Leaf || nodes[orders[faceProcEdgeMask[direction, i, 0], j]].type == OctreeNodeType.Pseudo)
 							edge_nodes[j] = nodes[orders[faceProcEdgeMask[direction, i, 0], j]];
 						else
 							edge_nodes[j] = nodes[orders[faceProcEdgeMask[direction, i, 0], j]].children[faceProcEdgeMask[direction, i, 1 + j]];
@@ -283,7 +305,7 @@ namespace DC2D
 			if (nodes[0] == null || nodes[1] == null || nodes[2] == null || nodes[3] == null)
 				return;
 
-			if (nodes[0].size == 1 && nodes[1].size == 1 && nodes[2].size == 1 && nodes[3].size == 1)
+			if (nodes[0].type != OctreeNodeType.Internal && nodes[1].type != OctreeNodeType.Internal && nodes[2].type != OctreeNodeType.Internal && nodes[3].type != OctreeNodeType.Internal)
 			{
 				ProcessIndexes(nodes, direction, indexes);
 			}
@@ -295,7 +317,7 @@ namespace DC2D
 
 					for (int j = 0; j < 4; j++)
 					{
-						if ((nodes[j].size == 1 && nodes[j].draw_info.index	!= -1) || nodes[j].type == OctreeNodeType.Pseudo)
+						if ((nodes[j].type == OctreeNodeType.Leaf) || nodes[j].type == OctreeNodeType.Pseudo)
 							edge_nodes[j] = nodes[j];
 						else
 							edge_nodes[j] = nodes[j].children[edgeProcEdgeMask[direction, i, j]];
@@ -304,70 +326,6 @@ namespace DC2D
 					ProcessEdge(edge_nodes, edgeProcEdgeMask[direction, i, 4], indexes);
 				}
 			}
-
-			/*if (node1 == null || node2 == null)
-				return;
-			if (node1.size != 1 || node2.size != 1 || node1.draw_info.index == -1 || node2.draw_info.index == -1)
-			{
-				OctreeNode leaf1;
-				OctreeNode leaf2;
-
-				for (int i = 0; i < 2; i++)
-				{
-					if (node1.size == 1 && node1.draw_info.index != -1)
-						leaf1 = node1;
-					else
-					{
-						int c = edge_mask[direction, i, 0];
-						leaf1 = node1.children[c];
-					}
-
-					if (node2.size == 1 && node2.draw_info.index != -1)
-						leaf2 = node2;
-					else
-					{
-						int c = edge_mask[direction, i, 1];
-						leaf2 = node2.children[c];
-					}
-
-					ProcessEdge(leaf1, leaf2, direction, indexes);
-				}
-			}
-			else
-			{
-				if (node1.draw_info.index == -1 || node2.draw_info.index == -1)
-				{
-					return;
-				}
-
-				int min_size = 100000;
-				bool sign_change = false;
-				OctreeNode[] nodes = new OctreeNode[] { node1, node2 };
-
-				for (int i = 0; i < 2; i++)
-				{
-					int edge = process_edge_mask[direction, i];
-					int c1 = edges[edge, 0];
-					int c2 = edges[edge, 1];
-
-					int m1 = (nodes[i].draw_info.corners >> c1) & 1;
-					int m2 = (nodes[i].draw_info.corners >> c2) & 1;
-
-					//if (nodes[i].size <= min_size)
-					{
-						min_size = nodes[i].size;
-						if (!sign_change)
-							sign_change = m1 != m2;
-					}
-				}
-
-
-				if (sign_change)
-				{
-					indexes.Add(node1.draw_info.index);
-					indexes.Add(node2.draw_info.index);
-				}
-			}*/
 		}
 
 		public static void ProcessIndexes(OctreeNode[] nodes, int direction, List<int> indexes)
@@ -400,7 +358,7 @@ namespace DC2D
 				sign_change[i] = (m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0);
 			}
 
-			if (sign_change[min_index])
+			//if (sign_change[min_index])
 			{
 				if (!flip)
 				{
@@ -423,6 +381,83 @@ namespace DC2D
 					indexes.Add(indices[3]);
 				}
 			}
+		}
+
+		public void Simplify(float threshold)
+		{
+			if (type != OctreeNodeType.Internal)
+				return;
+
+			int[] signs = { -1, -1, -1, -1, -1, -1, -1, -1 };
+			int mid_sign = -1;
+			int edge_count = 0;
+			bool is_collapsible = true;
+			bool has_children = false;
+			QEF3D qef = new QEF3D();
+
+			for (int i = 0; i < 8; i++)
+			{
+				if (children[i] == null)
+					continue;
+
+				has_children = true;
+				children[i].Simplify(threshold);
+				OctreeNode child = children[i];
+
+				if (child.type == OctreeNodeType.Internal)
+					is_collapsible = false;
+				else
+				{
+					qef.Add(child.draw_info.position, child.draw_info.averageNormal);
+
+					mid_sign = (child.draw_info.corners >> (7 - i)) & 1;
+					signs[i] = (child.draw_info.corners >> i) & i;
+
+					edge_count++;
+				}
+			}
+
+			if (!is_collapsible)
+				return;
+
+			Vector3 pos = qef.Solve2(0, 0, 0);
+			float error = qef.Error;
+
+			if (error > threshold)
+				return;
+
+			OctreeDrawInfo draw_info = new OctreeDrawInfo();
+
+			for (int i = 0; i < 8; i++)
+			{
+				if (signs[i] == -1)
+					draw_info.corners |= mid_sign << i;
+				else
+					draw_info.corners |= signs[i] << i;
+			}
+
+			Vector3 normal = new Vector3();
+			for (int i = 0; i < 8; i++)
+			{
+				if (children[i] != null)
+				{
+					OctreeNode child = children[i];
+					if (child.type == OctreeNodeType.Pseudo || child.type == OctreeNodeType.Leaf)
+						normal += child.draw_info.averageNormal;
+				}
+			}
+
+			normal.Normalize();
+			draw_info.averageNormal = normal;
+			draw_info.position = pos;
+
+			for (int i = 0; i < 8; i++)
+			{
+				children[i] = null;
+			}
+
+			type = OctreeNodeType.Pseudo;
+			this.draw_info = draw_info;
 		}
 	}
 }

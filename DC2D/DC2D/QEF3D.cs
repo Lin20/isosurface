@@ -17,6 +17,7 @@ namespace DC2D
 	{
 		public List<Vector3> Intersections { get; set; }
 		public List<Vector3> Normals { get; set; }
+		public float Error { get; set; }
 		Vector3 mass_point;
 		private static Random rnd = new Random();
 		private static Vector3[] deltas;
@@ -113,6 +114,8 @@ namespace DC2D
 		{
 			Vector3 x = mass_point / (float)Intersections.Count;
 			float error = GetDistanceSquared(x);
+			this.Error = error;
+			return x;
 
 			if (Math.Abs(error) >= 0.0001f)
 			{
@@ -131,6 +134,8 @@ namespace DC2D
 				}
 			}
 
+			if (x.X > 1 || x.Y > 1 || x.Z > 1 || x.X < 0 || x.Y < 0 || x.Z < 0)
+				return mass_point / (float)Intersections.Count;
 			return Vector3.Clamp(x, Vector3.Zero, Vector3.One);
 		}
 	}

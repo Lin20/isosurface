@@ -59,7 +59,8 @@ namespace DC2D
 		public void Contour()
 		{
 			List<VertexPositionColorNormal> vertices = new List<VertexPositionColorNormal>();
-			vertex_location = tree.Build(Vector3.Zero, resolution, 0.01f, vertices, this.size);
+			vertex_location = tree.Build(Vector3.Zero, resolution, .5f, vertices, this.size);
+			tree.GenerateVertexBuffer(vertices);
 			if (vertices.Count > 0)
 				buffer.SetData<VertexPositionColorNormal>(vertices.ToArray());
 			//ConstructTreeGrid(tree);
