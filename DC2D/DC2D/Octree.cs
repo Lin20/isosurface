@@ -165,6 +165,8 @@ namespace DC2D
 
 		public bool ConstructLeaf(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
 		{
+			if (size != 1)
+				return false;
 			int corners = 0;
 			float[, ,] samples = new float[2, 2, 2];
 			for (int i = 0; i < 8; i++)
@@ -317,7 +319,7 @@ namespace DC2D
 
 					for (int j = 0; j < 4; j++)
 					{
-						if ((nodes[j].type == OctreeNodeType.Leaf) || nodes[j].type == OctreeNodeType.Pseudo)
+						if (nodes[j].type == OctreeNodeType.Leaf || nodes[j].type == OctreeNodeType.Pseudo)
 							edge_nodes[j] = nodes[j];
 						else
 							edge_nodes[j] = nodes[j].children[edgeProcEdgeMask[direction, i, j]];
@@ -334,8 +336,13 @@ namespace DC2D
 			int min_index = 0;
 			int[] indices = { -1, -1, -1, -1 };
 			bool flip = false;
-			bool[] sign_change = { false, false, false, false };
+			bool sign_changed = false;
 
+			for (int i = 0; i < 4; i++)
+			{
+				if (nodes[i].size < min_size)
+					min_size = nodes[i].size;
+			}
 
 			for (int i = 0; i < 4; i++)
 			{
@@ -346,19 +353,13 @@ namespace DC2D
 				int m1 = (nodes[i].draw_info.corners >> c1) & 1;
 				int m2 = (nodes[i].draw_info.corners >> c2) & 1;
 
-				if (nodes[i].size < min_size)
-				{
-					min_size = nodes[i].size;
-					min_index = i;
-					flip = m1 != 0;
-				}
-
 				indices[i] = nodes[i].draw_info.index;
 
-				sign_change[i] = (m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0);
+				if (nodes[i].size == min_size && (m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0))
+					sign_changed = true;
 			}
 
-			//if (sign_change[min_index])
+			if (sign_changed)
 			{
 				if (!flip)
 				{
@@ -390,9 +391,7 @@ namespace DC2D
 
 			int[] signs = { -1, -1, -1, -1, -1, -1, -1, -1 };
 			int mid_sign = -1;
-			int edge_count = 0;
 			bool is_collapsible = true;
-			bool has_children = false;
 			QEF3D qef = new QEF3D();
 
 			for (int i = 0; i < 8; i++)
@@ -400,7 +399,6 @@ namespace DC2D
 				if (children[i] == null)
 					continue;
 
-				has_children = true;
 				children[i].Simplify(threshold);
 				OctreeNode child = children[i];
 
@@ -411,9 +409,7 @@ namespace DC2D
 					qef.Add(child.draw_info.position, child.draw_info.averageNormal);
 
 					mid_sign = (child.draw_info.corners >> (7 - i)) & 1;
-					signs[i] = (child.draw_info.corners >> i) & i;
-
-					edge_count++;
+					signs[i] = (child.draw_info.corners >> i) & 1;
 				}
 			}
 

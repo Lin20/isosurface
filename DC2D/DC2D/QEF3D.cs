@@ -112,6 +112,11 @@ namespace DC2D
 
 		public Vector3 Solve2(float svd_tol, int sweeps, float pinv_tol)
 		{
+			if (Intersections.Count == 0)
+			{
+				this.Error = 100000;
+				return Vector3.Zero;
+			}
 			Vector3 x = mass_point / (float)Intersections.Count;
 			float error = GetDistanceSquared(x);
 			this.Error = error;

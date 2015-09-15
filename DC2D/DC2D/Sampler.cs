@@ -119,6 +119,7 @@ namespace DC2D
 
 		public static float Sample(Vector3 pos)
 		{
+			return Noise(pos);
 			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(12, 12, 12)));
 			return Sphere(pos);
 			return Cuboid(pos);
@@ -126,8 +127,7 @@ namespace DC2D
 
 		public static float Noise(Vector3 pos)
 		{
-			double d = pos.Y - Math.Sin((pos.X * 0.34172f + pos.X * 0.23111 + pos.X * pos.X) * 0.01f) * 16.0f - 32;
-			return (float)d;
+			return SimplexNoise.Noise(pos.X * 0.04f, pos.Y * 0.04f, pos.Z * 0.04f);
 		}
 
 		public static float sdTorus(Vector3 pos)
@@ -140,7 +140,7 @@ namespace DC2D
 		public static Vector3 GetNormal(Vector3 v)
 		{
 			//can't compute gradient
-			float h = 0.001f;
+			float h = 1.0f;
 			float dxp = Sample(new Vector3(v.X + h, v.Y, v.Z));
 			float dxm = Sample(new Vector3(v.X - h, v.Y, v.Z));
 			float dyp = Sample(new Vector3(v.X, v.Y + h, v.Z));

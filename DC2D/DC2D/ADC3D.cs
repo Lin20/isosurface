@@ -48,9 +48,9 @@ namespace DC2D
 			vertices = new Vector3[resolution, resolution, resolution];
 			vertex_indexes = new int[resolution, resolution, resolution];
 
-			buffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, 65536, BufferUsage.None);
-			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 1000000, BufferUsage.None);
-			index_buffer = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 1000000, BufferUsage.None);
+			buffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, 262144, BufferUsage.None);
+			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 4000000, BufferUsage.None);
+			index_buffer = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 4000000, BufferUsage.None);
 			//InitData();
 
 			tree = new OctreeNode();
@@ -167,7 +167,7 @@ namespace DC2D
 			//return;
 			if (index_location == 0)
 				return;
-			effect.LightingEnabled = true;
+			//effect.LightingEnabled = true;
 			effect.PreferPerPixelLighting = true;
 			effect.SpecularPower = 64;
 			effect.SpecularColor = Color.Black.ToVector3();
