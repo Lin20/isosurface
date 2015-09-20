@@ -59,7 +59,7 @@
     <XnaCompressContent>true</XnaCompressContent>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>DC2D.Program</StartupObject>
+    <StartupObject>Isosurface.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="MathNet.Numerics">
@@ -101,13 +101,6 @@
     <Content Include="GameThumbnail.png">
       <XnaPlatformSpecific>true</XnaPlatformSpecific>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DC2DContent\IsosurfaceContent.contentproj">
-      <Name>IsosurfaceContent</Name>
-      <XnaReferenceType>Content</XnaReferenceType>
-      <Project>{00295EF2-AC3E-46E5-969F-568ACDB5A960}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
