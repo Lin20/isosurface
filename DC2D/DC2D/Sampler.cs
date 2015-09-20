@@ -14,7 +14,7 @@ namespace DC2D
 {
 	public class Sampler
 	{
-		public static float Resolution { get; set; }
+		public const int Resolution = Game1.resolution;
 		public static int[,] Edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 
 		public static Vector2 GetIntersection(Vector2 p1, Vector2 p2, float d1, float d2)
@@ -100,11 +100,11 @@ namespace DC2D
 			return p1 + (-d1) * (p2 - p1) / (d2 - d1);
 		}
 
-		public static float Sphere(Vector3 pos)
+		public static float Sphere( Vector3 pos)
 		{
-			float radius = (float)Resolution / 4.0f;
-			Vector3 origin = new Vector3(Resolution / 2, Resolution / 2, Resolution / 2);
-			return (pos - origin).Length() - radius;
+			const float radius = (float)Resolution / 2.0f;
+			Vector3 origin = new Vector3(Resolution * 0.5f);
+			return (pos - origin).LengthSquared() - radius * radius;
 		}
 
 		public static float Cuboid(Vector3 pos)
@@ -113,21 +113,22 @@ namespace DC2D
 			Vector3 local = pos - new Vector3(Resolution / 2, Resolution / 2, Resolution / 2);
 			Vector3 d = new Vector3(Math.Abs(local.X), Math.Abs(local.Y), Math.Abs(local.Z)) - new Vector3(radius, radius, radius);
 			float m = Math.Max(d.X, Math.Max(d.Y, d.Z));
-			Vector3 max = Vector3.Max(d, Vector3.Zero);
+			Vector3 max = d;
 			return Math.Min(m, max.Length());
 		}
 
 		public static float Sample(Vector3 pos)
 		{
-			return Noise(pos);
-			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(12, 12, 12)));
-			return Sphere(pos);
+			//return Noise(pos);
+			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(48, 48, 48)));
+			//return Sphere(pos);
 			return Cuboid(pos);
 		}
 
 		public static float Noise(Vector3 pos)
 		{
-			return SimplexNoise.Noise(pos.X * 0.04f, pos.Y * 0.04f, pos.Z * 0.04f);
+			float r = 0.02f;
+			return SimplexNoise.Noise(pos.X * r, pos.Y * r, pos.Z * r);
 		}
 
 		public static float sdTorus(Vector3 pos)

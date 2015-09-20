@@ -20,11 +20,16 @@ namespace DC2D
 		SpriteBatch spriteBatch;
 		BasicEffect effect;
 
+
+		int quality_index = 0;
+		float[] qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
+
 		//TODO: Create simple interface to allow switching dual contouring method on-the-fly
 		ADC3D dc;
+		Camera camera;
 
 		const int tile_size = 14;
-		const int resolution = 64;
+		public const int resolution = 128;
 
 		Texture2D pixel;
 
@@ -38,10 +43,10 @@ namespace DC2D
 		{
 			RasterizerState rs = new RasterizerState();
 			rs.CullMode = CullMode.None;
-			//rs.FillMode = FillMode.WireFrame;
+			rs.FillMode = FillMode.WireFrame;
 			GraphicsDevice.RasterizerState = rs;
-			graphics.PreferredBackBufferWidth = tile_size * resolution;
-			graphics.PreferredBackBufferHeight = tile_size * resolution;
+			graphics.PreferredBackBufferWidth = 1600;
+			graphics.PreferredBackBufferHeight = 900;
 			graphics.ApplyChanges();
 
 			IsMouseVisible = true;
@@ -51,20 +56,21 @@ namespace DC2D
 			//Ugly method of switching between 2D and 3D; fix later
 			if (true)
 			{
-				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * 64.0f, Vector3.Zero, Vector3.Up);
-				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 1.0f, 1.0f, 1000.0f);
+				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)resolution , Vector3.Zero, Vector3.Up);
+				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 1000.0f);
 				effect.EnableDefaultLighting();
 			}
 			else
 				effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 			effect.VertexColorEnabled = true;
 
+			camera = new Camera(GraphicsDevice, new Vector3(0, 50, -30), 1f);
+			camera.Update(true);
+			effect.View = camera.View;
+
 			//VertexPositionColor[] vertices = { new VertexPositionColor(new Vector3(10, 10, 0), Color.Red), new VertexPositionColor(new Vector3(10, 60, 0), Color.Blue) };
 			//buffer.SetData<VertexPositionColor>(vertices, 0, 2);
 
-			Sampler.Resolution = resolution;
-			dc = new ADC3D(GraphicsDevice, 64, tile_size);
-			dc.Contour();
 
 			pixel = new Texture2D(GraphicsDevice, tile_size, tile_size);
 			Color[] pixels = new Color[tile_size * tile_size];
@@ -84,7 +90,15 @@ namespace DC2D
 			// Create a new SpriteBatch, which can be used to draw textures.
 			spriteBatch = new SpriteBatch(GraphicsDevice);
 
-			// TODO: use this.Content to load your game content here
+			dc = new ADC3D(GraphicsDevice, resolution, tile_size);
+			NextQuality();
+		}
+
+		private void NextQuality()
+		{
+			long time = dc.Contour(qualities[quality_index]);
+			Window.Title = "Dual Contouring - " + (dc.IndexCount / 3) + " Triangles, " + dc.VertexCount + " Vertices (" + time + " ms) - Quality " + qualities[quality_index];
+			quality_index = (quality_index + 1) % qualities.Length;
 		}
 
 		/// <summary>
@@ -98,11 +112,20 @@ namespace DC2D
 
 		int mx, my;
 		float rx, ry;
+		bool last_down = false;
 		protected override void Update(GameTime gameTime)
 		{
 			// Allows the game to exit
 			if (Keyboard.GetState().IsKeyDown(Keys.Escape))
 				this.Exit();
+
+			if (!last_down && Keyboard.GetState().IsKeyDown(Keys.Space))
+			{
+				last_down = true;
+				NextQuality();
+			}
+			else if (!Keyboard.GetState().IsKeyDown(Keys.Space))
+				last_down = false;
 
 			mx = Mouse.GetState().X / tile_size;
 			my = Mouse.GetState().Y / tile_size;
@@ -112,6 +135,21 @@ namespace DC2D
 			{
 				//dc.GenerateAt(mx, my);
 			}
+
+			int speed = 1;
+			if (Keyboard.GetState().IsKeyDown(Keys.W))
+				camera.Position += Vector3.Transform(Vector3.Forward * speed, camera.Rotation);
+			else if (Keyboard.GetState().IsKeyDown(Keys.S))
+				camera.Position += Vector3.Transform(Vector3.Backward * speed, camera.Rotation);
+			if (Keyboard.GetState().IsKeyDown(Keys.D))
+				camera.Position += Vector3.Transform(Vector3.Right * speed, camera.Rotation);
+			else if (Keyboard.GetState().IsKeyDown(Keys.A))
+				camera.Position += Vector3.Transform(Vector3.Left * speed, camera.Rotation);
+			if (Keyboard.GetState().IsKeyDown(Keys.Space))
+				camera.Position += Vector3.Transform(Vector3.Up * speed, camera.Rotation);
+
+			camera.Update(true);
+			effect.View = camera.View;
 
 			base.Update(gameTime);
 		}
@@ -126,7 +164,7 @@ namespace DC2D
 			GraphicsDevice.Clear(Color.DimGray);
 
 			Matrix m = Matrix.CreateTranslation(new Vector3(-resolution / 2, -resolution / 2, -resolution / 2));
-			effect.World = m *Matrix.CreateFromYawPitchRoll(rx, ry, 0);
+			//effect.World = m *Matrix.CreateFromYawPitchRoll(rx, ry, 0);
 			//effect.CurrentTechnique.Passes[0].Apply();
 			//dc.Draw();
 			dc.Draw(effect);

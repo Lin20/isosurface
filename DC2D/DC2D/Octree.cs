@@ -9,6 +9,8 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DC2D
 {
@@ -106,8 +108,8 @@ namespace DC2D
 			this.size = size;
 			this.type = OctreeNodeType.Internal;
 			int v_index = 0;
-			ConstructNodes(ref v_index, vertices, grid_size);
-			Simplify(threshold);
+			ConstructNodes(vertices, grid_size, 1);
+			Simplify(threshold, false);
 			return v_index;
 		}
 
@@ -133,15 +135,19 @@ namespace DC2D
 			}
 		}
 
-		public bool ConstructNodes(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
+		public bool ConstructNodes(List<VertexPositionColorNormal> vertices, int grid_size, int threaded = 0)
 		{
 			if (size == 1)
 			{
-				return ConstructLeaf(ref v_index, vertices, grid_size);
+				return ConstructLeaf(vertices, grid_size);
 			}
 
 			int child_size = size / 2;
 			bool has_children = false;
+
+			Task[] threads = new Task[8];
+			bool[] return_values = new bool[8];
+			
 			for (int i = 0; i < 8; i++)
 			{
 				Vector3 offset = new Vector3(i / 4, i % 4 / 2, i % 2);
@@ -150,11 +156,38 @@ namespace DC2D
 				child.position = position + offset * (float)child_size;
 				child.type = OctreeNodeType.Internal;
 
-				if (child.ConstructNodes(ref v_index, vertices, grid_size))
-					has_children = true;
+				int index = i;
+				if (threaded > 0 && size > 2)
+				{
+					threads[index] = Task.Factory.StartNew(
+						() =>
+						{
+							return_values[index] = child.ConstructNodes(vertices, grid_size, threaded - 1);
+							if (return_values[index])
+								children[index] = child;
+							else
+								children[index] = null;
+						}, TaskCreationOptions.AttachedToParent);
+					//threads[index].Start();
+				}
 				else
-					child = null;
-				children[i] = child;
+				{
+					if (child.ConstructNodes(vertices, grid_size, 0))
+						has_children = true;
+					else
+						child = null;
+					children[i] = child;
+				}
+			}
+
+			if (threaded > 0 && size > 2)
+			{
+				for (int i = 0; i < 8; i++)
+				{
+					threads[i].Wait();
+					if (return_values[i])
+						has_children = true;
+				}
 			}
 
 			if (!has_children)
@@ -163,7 +196,7 @@ namespace DC2D
 			return true;
 		}
 
-		public bool ConstructLeaf(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
+		public bool ConstructLeaf(List<VertexPositionColorNormal> vertices, int grid_size)
 		{
 			if (size != 1)
 				return false;
@@ -211,7 +244,6 @@ namespace DC2D
 			draw_info = new OctreeDrawInfo();
 			draw_info.position = position + qef.Solve2(0, 0, 0);
 			draw_info.corners = corners;
-			draw_info.index = v_index++;
 			draw_info.averageNormal = n;
 			//vertices.Add(new VertexPositionColorNormal(position + draw_info.position, Color.LightGreen, n));
 
@@ -384,7 +416,7 @@ namespace DC2D
 			}
 		}
 
-		public void Simplify(float threshold)
+		public void Simplify(float threshold, bool randomize = false)
 		{
 			if (type != OctreeNodeType.Internal)
 				return;
@@ -393,13 +425,17 @@ namespace DC2D
 			int mid_sign = -1;
 			bool is_collapsible = true;
 			QEF3D qef = new QEF3D();
+			Random rnd = new Random();
 
+			float t = threshold;
 			for (int i = 0; i < 8; i++)
 			{
 				if (children[i] == null)
 					continue;
 
-				children[i].Simplify(threshold);
+				if (randomize)
+					t = (float)rnd.NextDouble() * (float)rnd.NextDouble() * 20.0f;
+				children[i].Simplify(t);
 				OctreeNode child = children[i];
 
 				if (child.type == OctreeNodeType.Internal)

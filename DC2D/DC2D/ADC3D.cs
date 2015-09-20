@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Diagnostics;
 
 namespace DC2D
 {
@@ -21,9 +22,9 @@ namespace DC2D
 		float[, ,] map;
 		int resolution;
 		int size;
-		int vertex_location;
+		public int VertexCount { get; set; }
 		int outline_location;
-		int index_location;
+		public int IndexCount { get; set; }
 		Vector3[, ,] vertices;
 		int[, ,] vertex_indexes;
 		Random rnd = new Random();
@@ -44,27 +45,36 @@ namespace DC2D
 			this.device = device;
 			this.resolution = resolution;
 			this.size = size;
-			map = new float[resolution, resolution, resolution];
-			vertices = new Vector3[resolution, resolution, resolution];
-			vertex_indexes = new int[resolution, resolution, resolution];
+			//map = new float[resolution, resolution, resolution];
+			//vertices = new Vector3[resolution, resolution, resolution];
+			//vertex_indexes = new int[resolution, resolution, resolution];
 
 			buffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, 262144, BufferUsage.None);
 			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 4000000, BufferUsage.None);
 			index_buffer = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 4000000, BufferUsage.None);
 			//InitData();
 
-			tree = new OctreeNode();
 		}
 
-		public void Contour()
+		public long Contour(float threshold)
 		{
+			Stopwatch watch = new Stopwatch();
+
 			List<VertexPositionColorNormal> vertices = new List<VertexPositionColorNormal>();
-			vertex_location = tree.Build(Vector3.Zero, resolution, .5f, vertices, this.size);
+			tree = new OctreeNode();
+
+			watch.Start();
+			tree.Build(Vector3.Zero, resolution, threshold, vertices, this.size);
+			watch.Stop();
+
 			tree.GenerateVertexBuffer(vertices);
 			if (vertices.Count > 0)
 				buffer.SetData<VertexPositionColorNormal>(vertices.ToArray());
+			VertexCount = vertices.Count;
 			//ConstructTreeGrid(tree);
 			CalculateIndexes();
+
+			return watch.ElapsedMilliseconds;
 		}
 
 		public void ConstructTreeGrid(OctreeNode node)
@@ -147,11 +157,12 @@ namespace DC2D
 			List<int> indexes = new List<int>();
 
 			tree.ProcessCell(indexes);
-			index_location = indexes.Count;
+			IndexCount = indexes.Count;
 			if (indexes.Count == 0)
 				return;
 
 			index_buffer.SetData<int>(indexes.ToArray());
+
 		}
 
 
@@ -165,7 +176,7 @@ namespace DC2D
 				device.DrawPrimitives(PrimitiveType.LineList, 0, outline_location / 2);
 			}
 			//return;
-			if (index_location == 0)
+			if (IndexCount == 0)                               
 				return;
 			//effect.LightingEnabled = true;
 			effect.PreferPerPixelLighting = true;
@@ -176,7 +187,9 @@ namespace DC2D
 			device.SetVertexBuffer(buffer);
 			device.Indices = index_buffer;
 			//device.DrawPrimitives(PrimitiveType.LineList, 0, vertex_location / 2);
-			device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, vertex_location, 0, index_location / 3);
+			device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VertexCount, 0, IndexCount / 3);
+			device.Indices = null;
+			device.SetVertexBuffer(null);
 		}
 	}
 }
