@@ -9,22 +9,14 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Diagnostics;
 
-namespace DC2D
+namespace DC2D.AdaptiveDualContouring2D
 {
-	public class ADC
+	public class ADC : ISurfaceAlgorithm
 	{
-		GraphicsDevice device;
-		DynamicVertexBuffer buffer;
-		DynamicVertexBuffer outline_buffer;
-		DynamicIndexBuffer index_buffer;
+		public override string Name { get { return "AdaptiveDualContouring2D"; } }
 		float[,] map;
-		int resolution;
-		int size;
-		int vertex_location;
-		int outline_location;
-		int index_location;
-		Vector2[,] vertices;
 		int[,] vertex_indexes;
 		Random rnd = new Random();
 
@@ -34,29 +26,28 @@ namespace DC2D
 		Vector2[] deltas = new Vector2[] { new Vector2(0, -1), new Vector2(0, 1), new Vector2(-1, 0), new Vector2(1, 0) };
 
 		public ADC(GraphicsDevice device, int resolution, int size)
+			: base(device, resolution, size, false)
 		{
-			this.device = device;
-			this.resolution = resolution;
-			this.size = size;
 			map = new float[resolution, resolution];
-			vertices = new Vector2[resolution, resolution];
 			vertex_indexes = new int[resolution, resolution];
-
-			buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 65536, BufferUsage.None);
-			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 65536, BufferUsage.None);
-			index_buffer = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 65536, BufferUsage.None);
-			//InitData();
 
 			tree = new QuadtreeNode();
 		}
 
-		public void Contour()
+		public override long Contour(float quality)
 		{
-			List<VertexPositionColor> vertices = new List<VertexPositionColor>();
-			vertex_location = tree.Build(Vector2.Zero, resolution, 0.01f, vertices, this.size);
-			buffer.SetData<VertexPositionColor>(vertices.ToArray());
+			Stopwatch watch = new Stopwatch();
+
+			List<VertexPositionColorNormal> vertices = new List<VertexPositionColorNormal>();
+			watch.Start();
+
+			VertexCount = tree.Build(Vector2.Zero, Resolution, 0.01f, vertices, this.Size);
+			VertexBuffer.SetData<VertexPositionColorNormal>(vertices.ToArray());
 			ConstructTreeGrid(tree);
 			CalculateIndexes();
+
+			watch.Stop();
+			return watch.ElapsedMilliseconds;
 		}
 
 		public void ConstructTreeGrid(QuadtreeNode node)
@@ -64,12 +55,12 @@ namespace DC2D
 			if (node == null)
 				return;
 			VertexPositionColor[] vs = new VertexPositionColor[16];
-			int x = (int)node.position.X * this.size;
-			int y = (int)node.position.Y * this.size;
+			int x = (int)node.position.X * this.Size;
+			int y = (int)node.position.Y * this.Size;
 			Color c = Color.LightSteelBlue;
 			Color v = Color.Red;
 
-			float size = node.size * this.size;
+			float size = node.size * this.Size;
 			vs[0] = new VertexPositionColor(new Vector3(x + 0 * size, y + 0 * size, 0), c);
 			vs[1] = new VertexPositionColor(new Vector3(x + 1 * size, y + 0 * size, 0), c);
 			vs[2] = new VertexPositionColor(new Vector3(x + 1 * size, y + 0 * size, 0), c);
@@ -81,13 +72,13 @@ namespace DC2D
 
 			if (node.type != QuadtreeNodeType.Leaf || node.draw_info.index == -1)
 			{
-				outline_buffer.SetData<VertexPositionColor>(outline_location * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 8, VertexPositionColor.VertexDeclaration.VertexStride);
-				outline_location += 8;
+				OutlineBuffer.SetData<VertexPositionColor>(OutlineLocation * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 8, VertexPositionColor.VertexDeclaration.VertexStride);
+				OutlineLocation += 8;
 			}
 			else
 			{
-				x += (int)(node.draw_info.position.X * (float)this.size);
-				y += (int)(node.draw_info.position.Y * (float)this.size);
+				x += (int)(node.draw_info.position.X * (float)this.Size);
+				y += (int)(node.draw_info.position.Y * (float)this.Size);
 				float r = 2;
 				vs[8] = new VertexPositionColor(new Vector3(x - r, y - r, 0), v);
 				vs[9] = new VertexPositionColor(new Vector3(x + r, y - r, 0), v);
@@ -97,8 +88,8 @@ namespace DC2D
 				vs[13] = new VertexPositionColor(new Vector3(x - r, y + r, 0), v);
 				vs[14] = new VertexPositionColor(new Vector3(x - r, y + r, 0), v);
 				vs[15] = new VertexPositionColor(new Vector3(x - r, y - r, 0), v);
-				outline_buffer.SetData<VertexPositionColor>(outline_location * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 16, VertexPositionColor.VertexDeclaration.VertexStride);
-				outline_location += 16;
+				OutlineBuffer.SetData<VertexPositionColor>(OutlineLocation * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 16, VertexPositionColor.VertexDeclaration.VertexStride);
+				OutlineLocation += 16;
 			}
 
 			if (node.type != QuadtreeNodeType.Leaf)
@@ -115,26 +106,11 @@ namespace DC2D
 			List<int> indexes = new List<int>();
 
 			tree.ProcessFace(indexes);
-			index_location = indexes.Count;
+			IndexCount = indexes.Count;
 			if (indexes.Count == 0)
 				return;
 
-			index_buffer.SetData<int>(indexes.ToArray());
-		}
-
-		public void Draw()
-		{
-			if (outline_location > 0)
-			{
-				device.SetVertexBuffer(outline_buffer);
-				device.DrawPrimitives(PrimitiveType.LineList, 0, outline_location / 2);
-			}
-			if (index_location == 0)
-				return;
-			device.SetVertexBuffer(buffer);
-			device.Indices = index_buffer;
-			//device.DrawPrimitives(PrimitiveType.LineList, 0, vertex_location / 2);
-			device.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, vertex_location, 0, index_location / 2);
+			IndexBuffer.SetData<int>(indexes.ToArray());
 		}
 	}
 }

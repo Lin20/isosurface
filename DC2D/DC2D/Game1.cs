@@ -8,30 +8,38 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Reflection;
 
 namespace DC2D
 {
-	/// <summary>
-	/// This is the main type for your game
-	/// </summary>
+	public enum WireframeModes
+	{
+		Fill = 1,
+		Wireframe = 2
+	}
+
 	public class Game1 : Microsoft.Xna.Framework.Game
 	{
 		GraphicsDeviceManager graphics;
 		SpriteBatch spriteBatch;
 		BasicEffect effect;
+		KeyboardState last_state;
 
+		public int QualityIndex { get; set; }
+		public int AlgorithmIndex { get; set; }
 
-		int quality_index = 0;
-		float[] qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
+		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
+		public Type[] AlgorithmTypes = { typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC) };
 
-		//TODO: Create simple interface to allow switching dual contouring method on-the-fly
-		ADC3D dc;
-		Camera camera;
+		public ISurfaceAlgorithm SelectedAlgorithm { get; set; }
+		private Camera Camera { get; set; }
 
-		const int tile_size = 14;
-		public const int resolution = 128;
+		public const int TileSize = 14;
+		public const int Resolution = 64;
 
-		Texture2D pixel;
+		public DrawModes DrawMode { get; set; }
+		public RasterizerState RState { get; set; }
+		public WireframeModes WireframeMode { get; set; }
 
 		public Game1()
 		{
@@ -41,10 +49,9 @@ namespace DC2D
 
 		protected override void Initialize()
 		{
-			RasterizerState rs = new RasterizerState();
-			rs.CullMode = CullMode.None;
-			rs.FillMode = FillMode.WireFrame;
-			GraphicsDevice.RasterizerState = rs;
+			RState = new RasterizerState();
+			RState.CullMode = CullMode.None;
+			GraphicsDevice.RasterizerState = RState;
 			graphics.PreferredBackBufferWidth = 1600;
 			graphics.PreferredBackBufferHeight = 900;
 			graphics.ApplyChanges();
@@ -53,125 +60,169 @@ namespace DC2D
 
 			effect = new BasicEffect(GraphicsDevice);
 
-			//Ugly method of switching between 2D and 3D; fix later
-			if (true)
-			{
-				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)resolution , Vector3.Zero, Vector3.Up);
-				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 1000.0f);
-				effect.EnableDefaultLighting();
-			}
-			else
-				effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+			QualityIndex = 1;
+			NextAlgorithm();
+
 			effect.VertexColorEnabled = true;
 
-			camera = new Camera(GraphicsDevice, new Vector3(0, 50, -30), 1f);
-			camera.Update(true);
-			effect.View = camera.View;
+			Camera = new Camera(GraphicsDevice, new Vector3(Resolution, Resolution, Resolution), 1f);
+			Camera.Update(true);
+			effect.View = Camera.View;
+			last_state = Keyboard.GetState();
 
-			//VertexPositionColor[] vertices = { new VertexPositionColor(new Vector3(10, 10, 0), Color.Red), new VertexPositionColor(new Vector3(10, 60, 0), Color.Blue) };
-			//buffer.SetData<VertexPositionColor>(vertices, 0, 2);
-
-
-			pixel = new Texture2D(GraphicsDevice, tile_size, tile_size);
-			Color[] pixels = new Color[tile_size * tile_size];
-			for (int i = 0; i < tile_size * tile_size; i++)
-				pixels[i] = Color.Black;
-			pixel.SetData<Color>(pixels);
+			DrawMode = DC2D.DrawModes.Mesh;
+			WireframeMode = WireframeModes.Fill;
 
 			base.Initialize();
 		}
 
-		/// <summary>
-		/// LoadContent will be called once per game and is the place to load
-		/// all of your content.
-		/// </summary>
 		protected override void LoadContent()
 		{
 			// Create a new SpriteBatch, which can be used to draw textures.
 			spriteBatch = new SpriteBatch(GraphicsDevice);
+		}
 
-			dc = new ADC3D(GraphicsDevice, resolution, tile_size);
+		public void NextAlgorithm()
+		{
+			SetAlgorithm(AlgorithmTypes[AlgorithmIndex]);
+			AlgorithmIndex = (AlgorithmIndex + 1) % AlgorithmTypes.Length;
+		}
+
+		public void SetAlgorithm(Type t)
+		{
+			SelectedAlgorithm = (ISurfaceAlgorithm)Activator.CreateInstance(t, GraphicsDevice, Resolution, TileSize);
+			QualityIndex--;
 			NextQuality();
+
+			if (SelectedAlgorithm.Is3D)
+			{
+				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up);
+				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 1000.0f);
+				effect.EnableDefaultLighting();
+			}
+			else
+			{
+				effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+				effect.View = Matrix.Identity;
+			}
 		}
 
 		private void NextQuality()
 		{
-			long time = dc.Contour(qualities[quality_index]);
-			Window.Title = "Dual Contouring - " + (dc.IndexCount / 3) + " Triangles, " + dc.VertexCount + " Vertices (" + time + " ms) - Quality " + qualities[quality_index];
-			quality_index = (quality_index + 1) % qualities.Length;
+			long time = SelectedAlgorithm.Contour(Qualities[QualityIndex]);
+			System.Text.StringBuilder text = new System.Text.StringBuilder();
+
+			text.Append(SelectedAlgorithm.Name).Append(" - ");
+
+			string topology_type = (SelectedAlgorithm.Is3D ? "Triangles" : "Lines");
+			if (SelectedAlgorithm.IsIndexed)
+				text.Append((SelectedAlgorithm.IndexCount / (SelectedAlgorithm.Is3D ? 3 : 2)) + " " + topology_type + ", " + SelectedAlgorithm.VertexCount + " Vertices");
+			else
+				text.Append((SelectedAlgorithm.VertexCount / (SelectedAlgorithm.Is3D ? 3 : 2)) + " " + topology_type);
+
+			text.Append(" (" + time + " ms)");
+			
+			text.Append(" - Quality " + Qualities[QualityIndex]);
+
+			Window.Title = text.ToString();
+			QualityIndex = (QualityIndex + 1) % Qualities.Length;
 		}
 
-		/// <summary>
-		/// UnloadContent will be called once per game and is the place to unload
-		/// all content.
-		/// </summary>
 		protected override void UnloadContent()
 		{
-			// TODO: Unload any non ContentManager content here
 		}
 
-		int mx, my;
-		float rx, ry;
-		bool last_down = false;
 		protected override void Update(GameTime gameTime)
 		{
 			// Allows the game to exit
 			if (Keyboard.GetState().IsKeyDown(Keys.Escape))
 				this.Exit();
 
-			if (!last_down && Keyboard.GetState().IsKeyDown(Keys.Space))
+			if (!last_state.IsKeyDown(Keys.Space) && Keyboard.GetState().IsKeyDown(Keys.Space))
 			{
-				last_down = true;
 				NextQuality();
 			}
-			else if (!Keyboard.GetState().IsKeyDown(Keys.Space))
-				last_down = false;
-
-			mx = Mouse.GetState().X / tile_size;
-			my = Mouse.GetState().Y / tile_size;
-			rx = (float)Mouse.GetState().X / (float)resolution * MathHelper.TwoPi * 0.25f;
-			ry = (float)Mouse.GetState().Y / (float)resolution * MathHelper.TwoPi * 0.25f;
-			if (Mouse.GetState().LeftButton == ButtonState.Pressed && mx > 0 && my > 0 && mx < resolution - 1 && my < resolution - 1)
+			if (!last_state.IsKeyDown(Keys.Tab) && Keyboard.GetState().IsKeyDown(Keys.Tab))
 			{
-				//dc.GenerateAt(mx, my);
+				NextAlgorithm();
 			}
 
-			int speed = 1;
-			if (Keyboard.GetState().IsKeyDown(Keys.W))
-				camera.Position += Vector3.Transform(Vector3.Forward * speed, camera.Rotation);
-			else if (Keyboard.GetState().IsKeyDown(Keys.S))
-				camera.Position += Vector3.Transform(Vector3.Backward * speed, camera.Rotation);
-			if (Keyboard.GetState().IsKeyDown(Keys.D))
-				camera.Position += Vector3.Transform(Vector3.Right * speed, camera.Rotation);
-			else if (Keyboard.GetState().IsKeyDown(Keys.A))
-				camera.Position += Vector3.Transform(Vector3.Left * speed, camera.Rotation);
-			if (Keyboard.GetState().IsKeyDown(Keys.Space))
-				camera.Position += Vector3.Transform(Vector3.Up * speed, camera.Rotation);
+			if (!last_state.IsKeyDown(Keys.D1) && Keyboard.GetState().IsKeyDown(Keys.D1))
+			{
+				if (DrawMode != DrawModes.Mesh)
+					DrawMode ^= DrawModes.Mesh;
+			}
+			if (!last_state.IsKeyDown(Keys.D2) && Keyboard.GetState().IsKeyDown(Keys.D2))
+			{
+				if (DrawMode != DrawModes.Outline)
+					DrawMode ^= DrawModes.Outline;
+			}
 
-			camera.Update(true);
-			effect.View = camera.View;
+			if (!last_state.IsKeyDown(Keys.D3) && Keyboard.GetState().IsKeyDown(Keys.D3))
+			{
+				if (WireframeMode == WireframeModes.Fill)
+					WireframeMode = WireframeModes.Fill | WireframeModes.Wireframe;
+				else if (WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
+					WireframeMode = WireframeModes.Wireframe;
+				else
+					WireframeMode = WireframeModes.Fill;
+
+				if (WireframeMode != (WireframeModes.Fill | WireframeModes.Wireframe))
+				{
+					RState = new RasterizerState();
+					RState.CullMode = CullMode.None;
+					RState.FillMode = (WireframeMode == WireframeModes.Fill ? FillMode.Solid : FillMode.WireFrame);
+					GraphicsDevice.RasterizerState = RState;
+				}
+			}
+
+			if (!last_state.IsKeyDown(Keys.C) && Keyboard.GetState().IsKeyDown(Keys.C))
+			{
+				Camera.MouseLocked = !Camera.MouseLocked;
+			}
+
+			if (SelectedAlgorithm.Is3D)
+			{
+				Camera.Update(true);
+				effect.View = Camera.View;
+			}
+
+			last_state = Keyboard.GetState();
 
 			base.Update(gameTime);
 		}
 
-		/// <summary>
-		/// This is called when the game should draw itself.
-		/// </summary>
-		/// <param name="gameTime">Provides a snapshot of timing values.</param>
 		protected override void Draw(GameTime gameTime)
 		{
-			//GraphicsDevice.Clear(Color.WhiteSmoke);
 			GraphicsDevice.Clear(Color.DimGray);
 
-			Matrix m = Matrix.CreateTranslation(new Vector3(-resolution / 2, -resolution / 2, -resolution / 2));
-			//effect.World = m *Matrix.CreateFromYawPitchRoll(rx, ry, 0);
-			//effect.CurrentTechnique.Passes[0].Apply();
-			//dc.Draw();
-			dc.Draw(effect);
+			if (SelectedAlgorithm.Is3D)
+				effect.World = Matrix.CreateTranslation(new Vector3(-Resolution / 2, -Resolution / 2, -Resolution / 2));
+			else
+				effect.World = Matrix.Identity;
 
-			//spriteBatch.Begin();
-			//spriteBatch.Draw(pixel, new Vector2(mx * tile_size, my * tile_size), Color.White);
-			//spriteBatch.End();
+			if (SelectedAlgorithm.Is3D && WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
+			{
+				RasterizerState rs = new RasterizerState();
+				rs.CullMode = CullMode.None;
+				rs.FillMode = FillMode.Solid;
+				rs.DepthBias = 0;
+				GraphicsDevice.RasterizerState = rs;
+			}
+
+			SelectedAlgorithm.Draw(effect, true, DrawMode);
+
+			if (SelectedAlgorithm.Is3D && WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
+			{
+				RasterizerState rs = new RasterizerState();
+				rs.CullMode = CullMode.None;
+				rs.FillMode = FillMode.WireFrame;
+				rs.DepthBias = -0.001f;
+				GraphicsDevice.RasterizerState = rs;
+				effect.VertexColorEnabled = false;
+				SelectedAlgorithm.Draw(effect, true, DrawMode);
+				effect.VertexColorEnabled = true;
+			}
 
 			base.Draw(gameTime);
 		}

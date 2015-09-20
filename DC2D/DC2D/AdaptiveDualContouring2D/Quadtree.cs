@@ -31,7 +31,7 @@ namespace DC2D
 		public int index;
 		public int corners;
 		public Vector2 position;
-		public Vector2 averageNormal;
+		public Vector3 averageNormal;
 		QEF qef;
 	}
 
@@ -56,7 +56,7 @@ namespace DC2D
 		private static int[, ,] edge_mask = new int[,,] { { { 2, 0 }, { 3, 1 } }, { { 1, 0 }, { 3, 2 } } };
 		private static int[,] process_edge_mask = new int[,] { { 0, 2 }, { 1, 3 } };
 
-		public int Build(Vector2 min, int size, float threshold, List<VertexPositionColor> vertices, int grid_size)
+		public int Build(Vector2 min, int size, float threshold, List<VertexPositionColorNormal> vertices, int grid_size)
 		{
 			this.position = min;
 			this.size = size;
@@ -66,7 +66,7 @@ namespace DC2D
 			return v_index;
 		}
 
-		public bool ConstructNodes(ref int v_index, List<VertexPositionColor> vertices, int grid_size)
+		public bool ConstructNodes(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
 		{
 			if (size == 1)
 			{
@@ -98,7 +98,7 @@ namespace DC2D
 			return true;
 		}
 
-		public bool ConstructLeaf(ref int v_index, List<VertexPositionColor> vertices, int grid_size)
+		public bool ConstructLeaf(ref int v_index, List<VertexPositionColorNormal> vertices, int grid_size)
 		{
 			int corners = 0;
 			float[,] samples = new float[2, 2];
@@ -112,6 +112,7 @@ namespace DC2D
 				return false;
 
 			QEF qef = new QEF();
+			Vector3 average_normal = new Vector3();
 			for (int i = 0; i < 4; i++)
 			{
 				int c1 = Sampler.Edges[i, 0];
@@ -130,15 +131,21 @@ namespace DC2D
 
 				Vector2 intersection = Sampler.GetIntersection(p1, p2, d1, d2);
 				Vector2 normal = Sampler.GetNormal(intersection + position);//GetNormal(x, y);
+				average_normal += new Vector3(normal, 0);
 
 				qef.Add(intersection, normal);
 			}
 
+			average_normal /= (float)qef.Intersections.Count;
+			average_normal.Normalize();
+
 			draw_info = new QuadtreeDrawInfo();
 			draw_info.position = qef.Solve2(0, 0, 0);
+			draw_info.averageNormal = average_normal;
 			draw_info.corners = corners;
 			draw_info.index = v_index++;
-			vertices.Add(new VertexPositionColor(new Vector3(position * grid_size + draw_info.position * size * grid_size, 0), Color.Black));
+			Color n_c = new Color(average_normal * 0.5f + Vector3.One * 0.5f);
+			vertices.Add(new VertexPositionColorNormal(new Vector3(position * grid_size + draw_info.position * size * grid_size, 0), n_c, average_normal));
 
 			type = QuadtreeNodeType.Leaf;
 			return true;

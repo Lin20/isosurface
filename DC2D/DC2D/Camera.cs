@@ -37,8 +37,8 @@ namespace DC2D
 			Device = d;
 			Position = position;
 			RotationSpeed = rotSpeed;
-			RotationX = 0;
-			RotationY = 0;
+			RotationX = MathHelper.PiOver4;
+			RotationY = -MathHelper.Pi / 5.0f;
 			MouseLocked = true;
 			TargetDistance = 12f;
 
@@ -53,6 +53,16 @@ namespace DC2D
 
 		public void Update(bool forceView = false)
 		{
+			int speed = 1;
+			if (Keyboard.GetState().IsKeyDown(Keys.W))
+				Position += Vector3.Transform(Vector3.Forward * speed, Rotation);
+			else if (Keyboard.GetState().IsKeyDown(Keys.S))
+				Position += Vector3.Transform(Vector3.Backward * speed, Rotation);
+			if (Keyboard.GetState().IsKeyDown(Keys.D))
+				Position += Vector3.Transform(Vector3.Right * speed, Rotation);
+			else if (Keyboard.GetState().IsKeyDown(Keys.A))
+				Position += Vector3.Transform(Vector3.Left * speed, Rotation);
+
 			MouseState currentMouseState = Mouse.GetState();
 			if (currentMouseState != OriginalMouseState)
 			{

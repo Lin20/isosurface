@@ -13,42 +13,19 @@ using System.Diagnostics;
 
 namespace DC2D
 {
-	public class DMCNeilson
+	public class DMCNeilson : ISurfaceAlgorithm
 	{
-		GraphicsDevice device;
-		DynamicVertexBuffer buffer;
-		DynamicVertexBuffer outline_buffer;
-		DynamicIndexBuffer index_buffer;
-		float[, ,] map;
-		int resolution;
-		int size;
-		public int VertexCount { get; set; }
-		int outline_location;
-		public int IndexCount { get; set; }
-		Vector3[, ,] vertices;
-		int[, ,] vertex_indexes;
-		Random rnd = new Random();
-
+		public override string Name { get { return "Dual Marching Cubes (Neilson)"; } }
 		public DMCNeilson(GraphicsDevice device, int resolution, int size)
+			: base(device, resolution, size, true)
 		{
-			this.device = device;
-			this.resolution = resolution;
-			this.size = size;
-
-			buffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, 262144, BufferUsage.None);
-			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 4000000, BufferUsage.None);
-			index_buffer = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 4000000, BufferUsage.None);
-			//InitData();
-
 		}
 
-		public long Contour(float threshold)
+		public override long Contour(float threshold)
 		{
 			Stopwatch watch = new Stopwatch();
 
-			List<VertexPositionColorNormal> vertices = new List<VertexPositionColorNormal>();
 			
-
 
 			return watch.ElapsedMilliseconds;
 		}
@@ -57,37 +34,6 @@ namespace DC2D
 		{
 
 		}
-
-		public void Draw(BasicEffect effect)
-		{
-			effect.LightingEnabled = false;
-			if (outline_location > 0)
-			{
-				effect.CurrentTechnique.Passes[0].Apply();
-				device.SetVertexBuffer(outline_buffer);
-				device.DrawPrimitives(PrimitiveType.LineList, 0, outline_location / 2);
-			}
-			//return;
-			if (VertexCount == 0)
-				return;
-			//effect.LightingEnabled = true;
-			effect.PreferPerPixelLighting = true;
-			effect.SpecularPower = 64;
-			effect.SpecularColor = Color.Black.ToVector3();
-			effect.CurrentTechnique.Passes[0].Apply();
-			effect.AmbientLightColor = Color.Gray.ToVector3();
-			device.SetVertexBuffer(buffer);
-			//device.Indices = index_buffer;
-			device.DrawPrimitives(PrimitiveType.TriangleList, 0, VertexCount / 3);
-			//device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VertexCount, 0, IndexCount / 3);
-			//device.Indices = null;
-			device.SetVertexBuffer(null);
-		}
-
-
-
-
-
 
 
 		/* These tables courtesy of http://stackoverflow.com/questions/16638711/dual-marching-cubes-table */

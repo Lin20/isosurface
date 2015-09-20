@@ -14,7 +14,7 @@ namespace DC2D
 {
 	public class Sampler
 	{
-		public const int Resolution = Game1.resolution;
+		public const int Resolution = Game1.Resolution;
 		public static int[,] Edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 
 		public static Vector2 GetIntersection(Vector2 p1, Vector2 p2, float d1, float d2)
@@ -57,13 +57,12 @@ namespace DC2D
 
 		public static float Sample(Vector2 pos)
 		{
-			return SimplexNoise.Noise(pos.X * 0.2f, pos.Y * 0.2f);
-			return pos.Y - SimplexNoise.Noise(0, pos.X * 0.1f) * 10.0f - 16.5f;
-			float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
-			return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 16.0f));
+			//return pos.Y - SimplexNoise.Noise(0, pos.X * 0.1f) * 10.0f - 16.5f;
+			//float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
+			//return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 16.0f));
 			//return sdTorus88(pos);
 			//return Math.Min(-Circle(pos), Circle(pos - new Vector2(8,8), Resolution / 4));
-			//return Circle(pos);
+			return Circle(pos);
 			//return Cuboid(pos);
 		}
 
@@ -102,8 +101,8 @@ namespace DC2D
 
 		public static float Sphere( Vector3 pos)
 		{
-			const float radius = (float)Resolution / 2.0f;
-			Vector3 origin = new Vector3(Resolution * 0.5f);
+			const float radius = (float)Resolution / 2.0f - 2.0f;
+			Vector3 origin = new Vector3((Resolution - 2.0f) * 0.5f);
 			return (pos - origin).LengthSquared() - radius * radius;
 		}
 

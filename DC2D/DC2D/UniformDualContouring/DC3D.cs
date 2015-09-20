@@ -9,22 +9,15 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Diagnostics;
 
-namespace DC2D
+namespace DC2D.UniformDualContouring
 {
-	public class DC3D
+	public class DC3D : ISurfaceAlgorithm
 	{
-		GraphicsDevice device;
-		DynamicVertexBuffer buffer;
-		DynamicVertexBuffer outline_buffer;
-		DynamicIndexBuffer indexes;
+		public override string Name { get { return "Uniform Dual Contouring"; } }
+
 		float[, ,] map;
-		int resolution;
-		int size;
-		int vertex_location;
-		int outline_location;
-		int index_location;
-		Vector3[, ,] vertices;
 		int[, ,] vertex_indexes;
 		Random rnd = new Random();
 
@@ -37,31 +30,24 @@ namespace DC2D
 
 		int[,] dirs = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 
-		public DC3D(GraphicsDevice device, int resolution, int size)
+		public DC3D(GraphicsDevice device, int Resolution, int size) : base(device, Resolution, size, true)
 		{
-			this.device = device;
-			this.resolution = resolution;
-			this.size = size;
-			map = new float[resolution, resolution, resolution];
-			vertices = new Vector3[resolution, resolution, resolution];
-			vertex_indexes = new int[resolution, resolution, resolution];
+			map = new float[Resolution, Resolution, Resolution];
 
-			buffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, 65536, BufferUsage.None);
-			outline_buffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, 1000000, BufferUsage.None);
-			indexes = new DynamicIndexBuffer(device, IndexElementSize.ThirtyTwoBits, 1000000, BufferUsage.None);
 			InitData();
 		}
 
 		private void InitData()
 		{
-			for (int x = 0; x < resolution; x++)
+			vertex_indexes = new int[Resolution, Resolution, Resolution];
+			for (int x = 0; x < Resolution; x++)
 			{
-				for (int y = 0; y < resolution; y++)
+				for (int y = 0; y < Resolution; y++)
 				{
-					for (int z = 0; z < resolution; z++)
+					for (int z = 0; z < Resolution; z++)
 					{
 						//map[x, y] = Circle(new Vector3(x, y));
-						map[x, y, z] = Sample(new Vector3(x, y, z));
+						map[x, y, z] = Sampler.Sample(new Vector3(x, y, z));
 						//map[x, y] = Math.Max(Cuboid(new Vector3(x - 1, y - 1)), Cuboid(new Vector3(x + 12, y + 12)));
 						//map[x, y] = Noise(new Vector3(x, y));
 					}
@@ -69,32 +55,39 @@ namespace DC2D
 			}
 		}
 
-		public void Contour()
+		public override long Contour(float threshold)
 		{
-			vertex_location = 1;
-			index_location = 0;
-			outline_location = 0;
-			for (int x = 1; x < resolution - 1; x++)
+			Stopwatch watch = new Stopwatch();
+
+			VertexCount = 1;
+			IndexCount = 0;
+			OutlineLocation = 0;
+
+			watch.Start();
+			for (int x = 1; x < Resolution - 1; x++)
 			{
-				for (int y = 1; y < resolution - 1; y++)
+				for (int y = 1; y < Resolution - 1; y++)
 				{
-					for (int z = 1; z < resolution - 1; z++)
+					for (int z = 1; z < Resolution - 1; z++)
 					{
 						GenerateAt(x, y, z);
 					}
 				}
 			}
 
-			for (int x = 1; x < resolution - 1; x++)
+			for (int x = 1; x < Resolution - 1; x++)
 			{
-				for (int y = 1; y < resolution - 1; y++)
+				for (int y = 1; y < Resolution - 1; y++)
 				{
-					for (int z = 1; z < resolution - 1; z++)
+					for (int z = 1; z < Resolution - 1; z++)
 					{
 						GenerateIndexAt(x, y, z);
 					}
 				}
 			}
+
+			watch.Stop();
+			return watch.ElapsedMilliseconds;
 		}
 
 		public void GenerateAt(int x, int y, int z)
@@ -139,8 +132,8 @@ namespace DC2D
 			vs[22] = new VertexPositionColor(new Vector3((x + 1), (y + 1), (z + 0)), c);
 			vs[23] = new VertexPositionColor(new Vector3((x + 1), (y + 1), (z + 1)), c);
 
-			outline_buffer.SetData<VertexPositionColor>(outline_location * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 24, VertexPositionColor.VertexDeclaration.VertexStride);
-			outline_location += 24;
+			OutlineBuffer.SetData<VertexPositionColor>(OutlineLocation * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, 24, VertexPositionColor.VertexDeclaration.VertexStride);
+			OutlineLocation += 24;
 
 			QEF3D qef = new QEF3D();
 			Vector3 average_normal = new Vector3();
@@ -160,22 +153,22 @@ namespace DC2D
 				Vector3 p1 = new Vector3((float)((c1 / 4)), (float)((c1 % 4 / 2)), (float)((c1 % 2)));
 				Vector3 p2 = new Vector3((float)((c2 / 4)), (float)((c2 % 4 / 2)), (float)((c2 % 2)));
 
-				Vector3 intersection = GetIntersection(p1, p2, d1, d2);
-				Vector3 normal = GetNormal(intersection + new Vector3(x, y, z));//GetNormal(x, y);
+				Vector3 intersection = Sampler.GetIntersection(p1, p2, d1, d2);
+				Vector3 normal = Sampler.GetNormal(intersection + new Vector3(x, y, z));//GetNormal(x, y);
 				average_normal += normal;
 
 				qef.Add(intersection, normal);
 			}
 
-			vertices[x, y, z] = qef.Solve2(0, 16, 0);
+			Vector3 p = qef.Solve2(0, 16, 0);
 
 			Vector3 n = average_normal / (float)qef.Intersections.Count;
-			Vector3 p = vertices[x, y, z];
 			VertexPositionColorNormal[] v2 = new VertexPositionColorNormal[1];
-			v2[0] = new VertexPositionColorNormal(new Vector3((p.X + x), (p.Y + y), (p.Z + z)), Color.LightGreen, n);
-			buffer.SetData<VertexPositionColorNormal>(vertex_location * VertexPositionColorNormal.VertexDeclaration.VertexStride, v2, 0, 1, VertexPositionColorNormal.VertexDeclaration.VertexStride);
-			vertex_indexes[x, y, z] = vertex_location;
-			vertex_location++;
+			Color color = new Color(n * 0.5f + Vector3.One * 0.5f);
+			v2[0] = new VertexPositionColorNormal(new Vector3((p.X + x), (p.Y + y), (p.Z + z)), color, n);
+			VertexBuffer.SetData<VertexPositionColorNormal>(VertexCount * VertexPositionColorNormal.VertexDeclaration.VertexStride, v2, 0, 1, VertexPositionColorNormal.VertexDeclaration.VertexStride);
+			vertex_indexes[x, y, z] = VertexCount;
+			VertexCount++;
 			/*vs[0] = new VertexPositionColor(new Vector3((x + 0) , (y + 0) , 0), Color.Black);
 			vs[1] = new VertexPositionColor(new Vector3((x + 1) , (y + 0) , 0), Color.Black);
 			vs[2] = new VertexPositionColor(new Vector3((x + 1) , (y + 0) , 0), Color.Black);
@@ -189,8 +182,8 @@ namespace DC2D
 			vs[9] = new VertexPositionColor(new Vector3((p.X + x + .1f) , (p.Y + y + .1f) , 0), Color.Black);
 			index = 10;
 
-			buffer.SetData<VertexPositionColor>(vertex_location * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, index, VertexPositionColor.VertexDeclaration.VertexStride);
-			vertex_location += index;*/
+			VertexBuffer.SetData<VertexPositionColor>(VertexCount * VertexPositionColor.VertexDeclaration.VertexStride, vs, 0, index, VertexPositionColor.VertexDeclaration.VertexStride);
+			VertexCount += index;*/
 		}
 
 		public void GenerateIndexAt(int x, int y, int z)
@@ -253,102 +246,8 @@ namespace DC2D
 			}*/
 
 			if (index > 0)
-				indexes.SetData<int>(index_location * 4, indices, 0, index);
-			index_location += index;
-		}
-
-		private Vector3 GetIntersection(Vector3 p1, Vector3 p2, float d1, float d2)
-		{
-			//do a simple linear interpolation
-			return p1 + (-d1) * (p2 - p1) / (d2 - d1);
-		}
-
-		private float Sphere(Vector3 pos)
-		{
-			float radius = (float)resolution / 4.0f;
-			Vector3 origin = new Vector3(resolution / 2, resolution / 2, resolution / 2);
-			return (pos - origin).Length() - radius;
-		}
-
-		float Cuboid(Vector3 pos)
-		{
-			float radius = (float)resolution / 8.0f;
-			Vector3 local = pos - new Vector3(resolution / 2, resolution / 2, resolution / 2);
-			Vector3 d = new Vector3(Math.Abs(local.X), Math.Abs(local.Y), Math.Abs(local.Z)) - new Vector3(radius, radius, radius);
-			float m = Math.Max(d.X, Math.Max(d.Y, d.Z));
-			Vector3 max = Vector3.Max(d, Vector3.Zero);
-			return Math.Min(m, max.Length());
-		}
-
-		float Sample(Vector3 pos)
-		{
-			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(12, 12, 12)));
-			//return Sphere(pos);
-			return Cuboid(pos);
-		}
-
-		float Noise(Vector3 pos)
-		{
-			double d = pos.Y - Math.Sin((pos.X * 0.34172f + pos.X * 0.23111 + pos.X * pos.X) * 0.01f) * 16.0f - 32;
-			return (float)d;
-		}
-
-		float sdTorus(Vector3 pos)
-		{
-			Vector2 t = new Vector2(resolution / 8, resolution / 8);
-			Vector2 q = new Vector2(new Vector2(pos.X, pos.Z).Length() - t.X, pos.Y);
-			return q.Length() - t.Y;
-		}
-
-		private Vector3 GetNormal(int x, int y, int z)
-		{
-			//can't compute gradient
-			if (x == 0 || y == 0 || x == resolution - 1 || y == resolution - 1)
-				return Vector3.Zero;
-
-			Vector3 gradient = new Vector3(map[x + 1, y, z] - map[x - 1, y, z], map[x, y + 1, z] - map[x, y - 1, z], map[x, y, z + 1] - map[x, y, z - 1]);
-			gradient.Normalize();
-			return gradient;
-		}
-
-		private Vector3 GetNormal(Vector3 v)
-		{
-			//can't compute gradient
-			float h = 0.001f;
-			float dxp = Sample(new Vector3(v.X + h, v.Y, v.Z));
-			float dxm = Sample(new Vector3(v.X - h, v.Y, v.Z));
-			float dyp = Sample(new Vector3(v.X, v.Y + h, v.Z));
-			float dym = Sample(new Vector3(v.X, v.Y - h, v.Z));
-			float dzp = Sample(new Vector3(v.X, v.Y, v.Z + h));
-			float dzm = Sample(new Vector3(v.X, v.Y, v.Z - h));
-			//Vector3 gradient = new Vector3(map[x + 1, y] - map[x - 1, y], map[x, y + 1] - map[x, y - 1]);
-			Vector3 gradient = new Vector3(dxp - dxm, dyp - dym, dzp - dzm);
-			gradient.Normalize();
-			return gradient;
-		}
-
-		public void Draw(BasicEffect effect)
-		{
-			effect.LightingEnabled = false;
-			if (outline_location > 0)
-			{
-				effect.CurrentTechnique.Passes[0].Apply();
-				device.SetVertexBuffer(outline_buffer);
-				device.DrawPrimitives(PrimitiveType.LineList, 0, outline_location / 2);
-			}
-			//return;
-			if (index_location == 0)
-				return;
-			effect.LightingEnabled = true;
-			effect.PreferPerPixelLighting = true;
-			effect.SpecularPower = 64;
-			effect.SpecularColor = Color.Black.ToVector3();
-			effect.CurrentTechnique.Passes[0].Apply();
-			effect.AmbientLightColor = Color.Gray.ToVector3();
-			device.SetVertexBuffer(buffer);
-			device.Indices = indexes;
-			//device.DrawPrimitives(PrimitiveType.LineList, 0, vertex_location / 2);
-			device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, vertex_location, 0, index_location / 3);
+				IndexBuffer.SetData<int>(IndexCount * 4, indices, 0, index);
+			IndexCount += index;
 		}
 	}
 }
