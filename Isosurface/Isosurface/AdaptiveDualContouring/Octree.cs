@@ -12,7 +12,7 @@ using Microsoft.Xna.Framework.Media;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DC2D
+namespace Isosurface
 {
 	public enum OctreeNodeType
 	{

@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.Reflection;
 
-namespace DC2D
+namespace Isosurface
 {
 	public enum WireframeModes
 	{
@@ -70,7 +70,7 @@ namespace DC2D
 			effect.View = Camera.View;
 			last_state = Keyboard.GetState();
 
-			DrawMode = DC2D.DrawModes.Mesh;
+			DrawMode = Isosurface.DrawModes.Mesh;
 			WireframeMode = WireframeModes.Fill;
 
 			base.Initialize();

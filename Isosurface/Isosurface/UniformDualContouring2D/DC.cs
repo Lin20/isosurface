@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.Diagnostics;
 
-namespace DC2D.UniformDualContouring2D
+namespace Isosurface.UniformDualContouring2D
 {
 	public class DC : ISurfaceAlgorithm
 	{

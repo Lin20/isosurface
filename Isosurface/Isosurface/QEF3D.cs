@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using MathNet.Numerics.LinearAlgebra;
 
-namespace DC2D
+namespace Isosurface
 {
 	public class QEF3D
 	{

@@ -1,6 +1,6 @@
 using System;
 
-namespace DC2D
+namespace Isosurface
 {
 #if WINDOWS || XBOX
     static class Program

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DC2D
+namespace Isosurface
 {
 	public class SimplexNoise
 	{

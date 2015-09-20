@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.Diagnostics;
 
-namespace DC2D.AdaptiveDualContouring2D
+namespace Isosurface.AdaptiveDualContouring2D
 {
 	public class ADC : ISurfaceAlgorithm
 	{
