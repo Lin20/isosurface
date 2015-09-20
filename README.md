@@ -11,7 +11,7 @@ In an effort to find the best way of making a dynamic voxel engine, I've been re
 
 **Notes**
 * The 2D implementations don't connect properly; they were my first tests with DC and have some issues, and the adaptive implementation doesn't have simplification
-* My QEF solver is hardly a QEF solver; Rather, it takes a set of offsets to apply to the mass point and find the one that has the lowest error, so do [b]not[/b] use this as an example
+* My QEF solver is hardly a QEF solver; Rather, it takes a set of offsets to apply to the mass point and find the one that has the lowest error, so do **not** use this as an example of what to do
 * The QEF solver is disabled in the 3D implementations but can be enabled (simplification needs some tweaks); sharp features will be lost and mesh will be deformed if the error tolerance is high without it
 
 ![Adaptive dual contouring](http://i.imgur.com/7LLNFut.png)
