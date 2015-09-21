@@ -29,7 +29,7 @@ namespace Isosurface
 		public int AlgorithmIndex { get; set; }
 
 		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
-		public Type[] AlgorithmTypes = { typeof(DualMarchingSquares.DMS),/* typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D), typeof(UniformDualContouring2D.DC),*/ typeof(AdaptiveDualContouring2D.ADC) };
+		public Type[] AlgorithmTypes = { typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D) };
 
 		public ISurfaceAlgorithm SelectedAlgorithm { get; set; }
 		private Camera Camera { get; set; }
