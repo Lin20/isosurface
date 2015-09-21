@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace Isosurface
+namespace Isosurface.AdaptiveDualContouring2D
 {
 	public enum QuadtreeNodeType
 	{

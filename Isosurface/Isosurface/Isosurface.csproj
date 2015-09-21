@@ -80,6 +80,8 @@
     <Compile Include="AdaptiveDualContouring2D\ADC.cs" />
     <Compile Include="AdaptiveDualContouring\ADC3D.cs" />
     <Compile Include="Camera.cs" />
+    <Compile Include="DualMarchingSquares\MarchingSquares.cs" />
+    <Compile Include="DualMarchingSquares\Quadtree.cs" />
     <Compile Include="UniformDualContouring2D\DC.cs" />
     <Compile Include="UniformDualContouring\DC3D.cs" />
     <Compile Include="DMCNeilson.cs" />

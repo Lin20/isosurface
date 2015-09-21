@@ -29,7 +29,7 @@ namespace Isosurface
 		public int AlgorithmIndex { get; set; }
 
 		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
-		public Type[] AlgorithmTypes = { typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC) };
+		public Type[] AlgorithmTypes = { typeof(DualMarchingSquares.DMS),/* typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D), typeof(UniformDualContouring2D.DC),*/ typeof(AdaptiveDualContouring2D.ADC) };
 
 		public ISurfaceAlgorithm SelectedAlgorithm { get; set; }
 		private Camera Camera { get; set; }
@@ -52,8 +52,9 @@ namespace Isosurface
 			RState = new RasterizerState();
 			RState.CullMode = CullMode.None;
 			GraphicsDevice.RasterizerState = RState;
-			graphics.PreferredBackBufferWidth = 1600;
+			graphics.PreferredBackBufferWidth = 900;
 			graphics.PreferredBackBufferHeight = 900;
+			graphics.PreferMultiSampling = true;
 			graphics.ApplyChanges();
 
 			IsMouseVisible = true;
@@ -66,11 +67,14 @@ namespace Isosurface
 			effect.VertexColorEnabled = true;
 
 			Camera = new Camera(GraphicsDevice, new Vector3(Resolution, Resolution, Resolution), 1f);
-			Camera.Update(true);
-			effect.View = Camera.View;
+			if (SelectedAlgorithm.Is3D)
+			{
+				Camera.Update(true);
+				effect.View = Camera.View;
+			}
 			last_state = Keyboard.GetState();
 
-			DrawMode = Isosurface.DrawModes.Mesh;
+			DrawMode = Isosurface.DrawModes.Mesh | DrawModes.Outline;
 			WireframeMode = WireframeModes.Fill;
 
 			base.Initialize();
@@ -194,7 +198,10 @@ namespace Isosurface
 
 		protected override void Draw(GameTime gameTime)
 		{
+			if(SelectedAlgorithm.Is3D)
 			GraphicsDevice.Clear(Color.DimGray);
+			else
+				GraphicsDevice.Clear(Color.WhiteSmoke);
 
 			if (SelectedAlgorithm.Is3D)
 				effect.World = Matrix.CreateTranslation(new Vector3(-Resolution / 2, -Resolution / 2, -Resolution / 2));

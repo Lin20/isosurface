@@ -17,10 +17,11 @@ namespace Isosurface
 		public const int Resolution = Game1.Resolution;
 		public static int[,] Edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 
-		public static Vector2 GetIntersection(Vector2 p1, Vector2 p2, float d1, float d2)
+		public static Vector2 GetIntersection(Vector2 p1, Vector2 p2, float d1, float d2, float isolevel = 0)
 		{
 			//do a simple linear interpolation
-			return p1 + (-d1) * (p2 - p1) / (d2 - d1);
+			float mu = (isolevel - d1) / (d2 - d1);
+			return p1 + mu * (p2 - p1);
 		}
 
 		public static  float Circle(Vector2 pos)
@@ -32,7 +33,7 @@ namespace Isosurface
 
 		public static float Circle(Vector2 pos, float radius)
 		{
-			Vector2 origin = new Vector2(Resolution / 2, Resolution / 2);
+			Vector2 origin = new Vector2(Resolution / 4, Resolution / 4);
 			return (pos - origin).Length() - radius;
 		}
 
@@ -57,13 +58,15 @@ namespace Isosurface
 
 		public static float Sample(Vector2 pos)
 		{
+			float scale = 0.1f;
+			//return SimplexNoise.Noise(pos.X * scale, pos.Y * scale);
 			//return pos.Y - SimplexNoise.Noise(0, pos.X * 0.1f) * 10.0f - 16.5f;
-			//float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
-			//return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 16.0f));
+			float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
+			return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 6.0f));
 			//return sdTorus88(pos);
-			//return Math.Min(-Circle(pos), Circle(pos - new Vector2(8,8), Resolution / 4));
-			return Circle(pos);
-			//return Cuboid(pos);
+			return Math.Min(-Circle(pos), Circle(pos - new Vector2(8,8), Resolution / 4));
+			return Circle(pos) - 10;
+			return Cuboid(pos);
 		}
 
 		public static float Noise(Vector2 pos)
@@ -79,18 +82,24 @@ namespace Isosurface
 			return q.Length() - t.Y;
 		}
 
-		public static Vector2 GetNormal(Vector2 v)
+		public static Vector2 GetGradient(Vector2 v)
 		{
 			//can't compute gradient
-			float h = 0.001f;
+			float h = 1.0f;
 			float dxp = Sample(new Vector2(v.X + h, v.Y));
 			float dxm = Sample(new Vector2(v.X - h, v.Y));
 			float dyp = Sample(new Vector2(v.X, v.Y + h));
 			float dym = Sample(new Vector2(v.X, v.Y - h));
 			//Vector2 gradient = new Vector2(map[x + 1, y] - map[x - 1, y], map[x, y + 1] - map[x, y - 1]);
 			Vector2 gradient = new Vector2(dxp - dxm, dyp - dym);
-			gradient.Normalize();
 			return gradient;
+		}
+
+		public static Vector2 GetNormal(Vector2 v)
+		{
+			Vector2 grad = GetGradient(v);
+			grad.Normalize();
+			return grad;
 		}
 
 		public static Vector3 GetIntersection(Vector3 p1, Vector3 p2, float d1, float d2)
@@ -119,7 +128,7 @@ namespace Isosurface
 		public static float Sample(Vector3 pos)
 		{
 			//return Noise(pos);
-			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(48, 48, 48)));
+			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(16, 16, 16)));
 			//return Sphere(pos);
 			return Cuboid(pos);
 		}

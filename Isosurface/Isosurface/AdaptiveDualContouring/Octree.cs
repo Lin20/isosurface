@@ -12,7 +12,7 @@ using Microsoft.Xna.Framework.Media;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Isosurface
+namespace Isosurface.AdaptiveDualContouring
 {
 	public enum OctreeNodeType
 	{
