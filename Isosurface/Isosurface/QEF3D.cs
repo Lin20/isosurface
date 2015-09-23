@@ -1,4 +1,12 @@
-﻿using System;
+﻿/* This is my QEF "Solver"
+ * As you'll see by the commented out lines and useless Solve2 parameters, I initially tried to port the C++ implementation
+ * Lo and behold, I got fed up and decided to bruteforce it
+ * The original Dual Contouring paper describes the equation to calculate the error of a point that describes when 3 planes intersect
+ * We use this to our advantage and just throw a bunch of pre-calculated points at it and see which one returns the lowest value
+ * It's... not efficient, to say the least, but it does preserve both sharp and smooth features
+ * Note: It's currently disabled, meaning sharp features aren't preserved
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -110,6 +118,7 @@ namespace Isosurface
 			return dot * dot;
 		}
 
+		/* Currently disabled; it just returns the mass point, which means sharp features are lost */
 		public Vector3 Solve2(float svd_tol, int sweeps, float pinv_tol)
 		{
 			if (Intersections.Count == 0)

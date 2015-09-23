@@ -1,4 +1,9 @@
 ﻿using System;
+/* A static sampling function class
+ * It does not support CSG trees or have any real elegance to it
+ * It's just meant as a way to test different functions
+ * Also some don't even work...!
+ */
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,7 +29,7 @@ namespace Isosurface
 			return p1 + mu * (p2 - p1);
 		}
 
-		public static  float Circle(Vector2 pos)
+		public static float Circle(Vector2 pos)
 		{
 			float radius = (float)Resolution / 4.0f;
 			Vector2 origin = new Vector2(Resolution / 2, Resolution / 2);
@@ -58,13 +63,13 @@ namespace Isosurface
 
 		public static float Sample(Vector2 pos)
 		{
-			float scale = 0.1f;
+			float scale = 0.5f;
 			//return SimplexNoise.Noise(pos.X * scale, pos.Y * scale);
 			//return pos.Y - SimplexNoise.Noise(0, pos.X * 0.1f) * 10.0f - 16.5f;
 			float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
 			return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 6.0f));
 			//return sdTorus88(pos);
-			return Math.Min(-Circle(pos), Circle(pos - new Vector2(8,8), Resolution / 4));
+			return Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
 			return Circle(pos) - 10;
 			return Cuboid(pos);
 		}
@@ -85,7 +90,7 @@ namespace Isosurface
 		public static Vector2 GetGradient(Vector2 v)
 		{
 			//can't compute gradient
-			float h = 1.0f;
+			float h = 0.001f;
 			float dxp = Sample(new Vector2(v.X + h, v.Y));
 			float dxm = Sample(new Vector2(v.X - h, v.Y));
 			float dyp = Sample(new Vector2(v.X, v.Y + h));
@@ -108,7 +113,7 @@ namespace Isosurface
 			return p1 + (-d1) * (p2 - p1) / (d2 - d1);
 		}
 
-		public static float Sphere( Vector3 pos)
+		public static float Sphere(Vector3 pos)
 		{
 			const float radius = (float)Resolution / 2.0f - 2.0f;
 			Vector3 origin = new Vector3((Resolution - 2.0f) * 0.5f);
@@ -146,10 +151,14 @@ namespace Isosurface
 			return q.Length() - t.Y;
 		}
 
+		/* For some reason, normals look broken in 3D implementations
+		 * They used to look fine though...
+		 * TODO: Fix
+		 */
 		public static Vector3 GetNormal(Vector3 v)
 		{
 			//can't compute gradient
-			float h = 1.0f;
+			float h = 0.001f;
 			float dxp = Sample(new Vector3(v.X + h, v.Y, v.Z));
 			float dxm = Sample(new Vector3(v.X - h, v.Y, v.Z));
 			float dyp = Sample(new Vector3(v.X, v.Y + h, v.Z));

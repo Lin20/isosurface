@@ -1,4 +1,7 @@
-﻿using System;
+﻿/* This class servers as the front-end to the 2D Adaptive "Dual Contouring" algorithm
+ * See AdaptiveDualContouring2D.QuadTree for the actual algorithm contents
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

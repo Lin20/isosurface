@@ -1,4 +1,10 @@
-﻿using System;
+﻿/* This is a 3D Adaptive Dual Contouring implementation
+ * Dual vertices are placed where they have the smallest error
+ * The current QEF solver uses a bruteforce solution when enabled, which is slow and doesn't result in the best-looking meshes
+ * But for the most part, it preserves sharp features and smooths round ones
+ * It's currently disabled though, so sharp features are NOT preserved
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -54,8 +60,10 @@ namespace Isosurface.AdaptiveDualContouring
 		public OctreeNode[] children; //Z order
 		public OctreeDrawInfo draw_info;
 
-		// ----------------------------------------------------------------------------
-		// data from the original DC impl, drives the contouring process
+		/* These tables were taken from a scaled-down C++ version of the source that came with the original Dual Contouring paper
+		 * They are unformatted and not renamed... yet
+		 * AKA: TODO: Rename and format
+		 */
 
 		static int[,] edgevmap =
 		{
@@ -135,6 +143,11 @@ namespace Isosurface.AdaptiveDualContouring
 			}
 		}
 
+		/* Threaded is a very simple way to multithread the node generation
+		 * Be careful though, as the number of tasks generated is 8^threaded
+		 * Anything more than 1 generally is slower than 1
+		 * To be safe, either keep it at 0 or 1
+		 */
 		public bool ConstructNodes(List<VertexPositionColorNormal> vertices, int grid_size, int threaded = 0)
 		{
 			if (size == 1)
@@ -196,6 +209,9 @@ namespace Isosurface.AdaptiveDualContouring
 			return true;
 		}
 
+		/* The following code is more or less a copy/paste cleanup of the C++ implementation
+		 * It's not clean, or efficient, but it works and is fairly straightforward
+		 */
 		public bool ConstructLeaf(List<VertexPositionColorNormal> vertices, int grid_size)
 		{
 			if (size != 1)

@@ -1,4 +1,9 @@
-﻿using System;
+﻿/* This is my 2D version of the QEF solver
+ * For an in-depth explanation of the messiness of it, see QEF3D.cs
+ * The planes equation applies to lines too, which is convenient
+ * Both sharp and smooth features are preserved quite well with this "implementation"
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

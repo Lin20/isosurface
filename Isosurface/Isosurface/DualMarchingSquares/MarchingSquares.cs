@@ -1,4 +1,8 @@
-﻿using System;
+﻿/* A very simple Marching Squares implementation that only generates lines
+ * If desired, it can easily be changed to generate triangles but lines are the simplest
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +23,12 @@ namespace Isosurface.DualMarchingSquares
 		public Vector2[] Positions { get; set; }
 		public Vector2[] Normals { get; set; }
 
+		/*
+		 * We use bitmasks since the lookup table we used orders vertices differently
+		 * Our squares go top left, bottom left, top right, bottom right
+		 * The table's squares go clockwise starting from top left
+		 * http://ej.iop.org/images/1742-5468/2008/12/P12015/Full/0006006.jpg
+		 */
 		private static int[] Bitmasks = { 1, 8, 2, 4 };
 
 		public Cell()
@@ -61,7 +71,7 @@ namespace Isosurface.DualMarchingSquares
 					vs.Add(GetPosition(0, 1));
 					break;
 
-					//stop cc
+					//Counterclockwise lines stop here because I grew lazy...
 				case 0x4:
 					vs.Add(GetPosition(3, 2));
 					vs.Add(GetPosition(1, 3));
@@ -136,6 +146,7 @@ namespace Isosurface.DualMarchingSquares
 			}
 		}
 
+		/* TODO: Use the cached sampled value once it's properly calculated! */
 		private Vector2 GetPosition(int a, int b)
 		{
 			return Sampler.GetIntersection(Positions[a], Positions[b], Sampler.Sample(Positions[a]), Sampler.Sample(Positions[b]), 0);

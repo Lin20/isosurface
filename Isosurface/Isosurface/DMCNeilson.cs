@@ -1,4 +1,7 @@
-﻿using System;
+﻿/* This is a TODO implementation of Neilson's "Dual Marching Cubes" algorithm (not to be confused with "Dual Marching Cubes: Primal Contouring of Dual Grids"
+ * It's important we implement this because a lot of the more recent algorithms that preserve manifoldness are built off of this algorithm
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

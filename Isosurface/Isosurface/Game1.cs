@@ -1,3 +1,25 @@
+/* Main class for Isosurface project
+ * Most the code written by Lin
+ * Other pieces of code borrowed from existing implementations
+ * https://github.com/aewallin/dualcontouring
+ * https://code.google.com/p/simplexnoise/
+ * http://www.volume-gfx.com/
+ * All of this code is meant for experimenting purposes only!
+ * Do not use any of it as a guide for how every algorithm works specifically
+ * NONE of the algorithms are implemented to completion, or to the exact specification in the original papers
+ * For example, the QEF solvers for Dual Contouring use a brute-force method of calculating the best point
+ * In the 3D DC implementations, QEF solving is disabled altogether
+ * The Dual Marching Squares implementation substitutes an error-reducing function with a separate, faster one
+ * Some implementations might exhibit bugs, like improper connectivity in the 2D DC implementations
+ * These should all be fixed in time though
+ * The goal of this code is to provide the simplest, basic implementations of each algorithm for people looking to get better than Marching Cubes results
+ * All of the implemented algorithms have their own namespace in their own folder, which means they don't depend on anything else
+ * With the exception of the QEF solvers and Sampler class, and of course the abstract class ISurfaceAlgorithm
+ * You can find all of the papers by using Google
+ * Good luck!
+ * https://github.com/Lin20/isosurface
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +51,8 @@ namespace Isosurface
 		public int AlgorithmIndex { get; set; }
 
 		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
+
+		/* Add new algorithms here to see them by pressing Tab */
 		public Type[] AlgorithmTypes = { typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D) };
 
 		public ISurfaceAlgorithm SelectedAlgorithm { get; set; }
@@ -49,10 +73,11 @@ namespace Isosurface
 
 		protected override void Initialize()
 		{
+			float n = SimplexNoise.Noise(0, 0);
 			RState = new RasterizerState();
 			RState.CullMode = CullMode.None;
 			GraphicsDevice.RasterizerState = RState;
-			graphics.PreferredBackBufferWidth = 900;
+			graphics.PreferredBackBufferWidth = 1600;
 			graphics.PreferredBackBufferHeight = 900;
 			graphics.PreferMultiSampling = true;
 			graphics.ApplyChanges();

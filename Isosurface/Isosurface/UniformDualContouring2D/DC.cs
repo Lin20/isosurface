@@ -1,4 +1,10 @@
-﻿using System;
+﻿/* Uniform 2D Dual Contouring
+ * Messy, but it works
+ * This was my first implementation, so it operates on a pre-defined grid and might have some messy/useless stuff
+ * Like the adaptive implementation, it suffers from connectivity issues
+ * TODO: Fix connectivity issues
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

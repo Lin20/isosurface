@@ -1,4 +1,8 @@
-﻿using System;
+﻿/* This class servers as the front-end to the "Dual Marching Squares" algorithm
+ * See DualMarchingSquares.QuadTree for the actual algorithm contents
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -105,10 +109,8 @@ namespace Isosurface.DualMarchingSquares
 			Cells.Clear();
 			QuadtreeNode.ProcessFace(Tree, indexes, Cells);
 			IndexCount = indexes.Count;
-			if (indexes.Count == 0)
-				return;
-
-			IndexBuffer.SetData<int>(indexes.ToArray());
+			if (indexes.Count != 0)
+				IndexBuffer.SetData<int>(indexes.ToArray());
 
 			Vertices.Clear();
 			foreach (Cell c in Cells)
@@ -127,6 +129,7 @@ namespace Isosurface.DualMarchingSquares
 				effect.CurrentTechnique.Passes[0].Apply();
 				Device.SetVertexBuffer(OutlineBuffer);
 				Device.DrawPrimitives(PrimitiveType.LineList, 0, OutlineLocation / 2);
+				Device.SetVertexBuffer(null);
 			}
 
 			if (DualGridCount > 0 && IndexCount > 0 && (mode & DrawModes.Outline) != 0)

@@ -1,4 +1,10 @@
-﻿using System;
+﻿/* This is a 2D Dual Marching Cubes (Schaefer's and Warren's) implementation (AKA Dual Marching Squares, although it's not formerly named as such)
+ * Dual vertices are placed in the centers of their cells instead of moved to the features of the function
+ * This means sharp features are NOT preserved!
+ * Also there is an issue with the current error-calculating 'optimizations' - See GetError function
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,7 +33,7 @@ namespace Isosurface.DualMarchingSquares
 		//public QuadtreeNodeType type;
 		public Vector2 position;
 		public int size;
-		public QuadtreeNode[] children; //Z order
+		public QuadtreeNode[] children;
 		public Vector2 dualgrid_pos;
 		public float isovalue;
 		public Vector2 normal;
@@ -36,6 +42,9 @@ namespace Isosurface.DualMarchingSquares
 		public int index;
 		//public QuadtreeDrawInfo draw_info;
 
+		/* These tables are much cleaner to work with than having different functions for each face/edge
+		 * They were annoying to build but it's worth it
+		 */
 		private static int[,] edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 		private static int[, ,] edge_children = new int[,,]
 		{
@@ -50,6 +59,14 @@ namespace Isosurface.DualMarchingSquares
 		private static int[] middle_points = { 3, 2, 1, 0 };
 		private static int[] connect_points = { 0, 2, 3, 1 };
 
+
+		/* Important
+		 * ---------
+		 * We should eventually look into another top-down quad/octree function that adapts to the features of the function
+		 * This works well, but the error calculation for splitting doesn't always work without increasing the samples (see GetError)
+		 * I wonder what it'd look like if we applied the dual grid to a surface-adapted quadtree? (one generated via Dual Contouring)
+		 * TODO: Try the above!
+		 */
 		public void Build(int size, int min_size, float threshold, int grid_size, List<VertexPositionColorNormal> vertices)
 		{
 			this.size = size;
@@ -60,6 +77,7 @@ namespace Isosurface.DualMarchingSquares
 
 		public void TrySplit(int min_size, float threshold, int grid_size, List<VertexPositionColorNormal> vertices)
 		{
+			// This part taken from http://www.volume-gfx.com/ as a listed optimization, though it's disabled right now by setting the value to 1000
 			float minSplitDistanceDiagonalFactor = 1000.0f;
 			if (Sampler.Sample(position + Vector2.One * size * 0.5f) > size * (float)Math.Sqrt(2) * minSplitDistanceDiagonalFactor || size <= min_size || GetError(threshold) < threshold)
 			{
@@ -84,6 +102,14 @@ namespace Isosurface.DualMarchingSquares
 			}
 		}
 
+		/* This error function was taken from http://www.volume-gfx.com/
+		 * However, it has a major flaw when points sampled have a very similar value
+		 * The only way to fix it is to sample from more points, have a maximum container size, or sample random points
+		 * This can still lead to the error falsely being calculated as negligible though for certain functions, such as noise functions
+		 * The only way (to my knowledge) is to sample points on a uniform grid as the original DMC paper suggests
+		 * It can be done efficiently though, like sampling the corners and mid points initially, then the in-between points, etc
+		 * And breaking early if the error exceeds the threshold
+		 */
 		public float GetError(float threshold)
 		{
 			float error = 0;
@@ -132,6 +158,8 @@ namespace Isosurface.DualMarchingSquares
 				f10 * position.X * m_y +
 				f11 * position.X * position.Y;
 		}
+
+		/* The following functions generate the dual grid */
 
 		public static void ProcessFace(QuadtreeNode q1, List<int> indices, List<Cell> cells)
 		{

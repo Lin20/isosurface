@@ -1,4 +1,8 @@
-﻿using System;
+﻿/* Uniform Dual Contouring
+ * Messy, but it works
+ * This was an earlier implementation so it still operates on pre-calculated values rather than the function directly
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

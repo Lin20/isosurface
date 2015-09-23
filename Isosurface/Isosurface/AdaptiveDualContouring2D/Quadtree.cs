@@ -1,4 +1,10 @@
-﻿using System;
+﻿/* This is a 2D Adaptive Dual Contouring implementation
+ * Dual vertices are placed where they have the smallest error
+ * The current QEF solver uses a bruteforce solution, which is slow and doesn't result in the best-looking meshes
+ * But for the most part, it preserves sharp features and smooths round ones
+ * There is currently a connectivity issue that needs to be fixed
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -52,6 +58,10 @@ namespace Isosurface.AdaptiveDualContouring2D
 		public QuadtreeNode[] children; //Z order
 		public QuadtreeDrawInfo draw_info;
 
+		/* These tables have an error in them somewhere that leads to cells connecting that shouldn't
+		 * Or rather, cells that don't actually exhibit sign changes but get stored as such
+		 * TODO: Fix
+		 */
 		private static int[,] edges = new int[,] { { 0, 2 }, { 1, 3 }, { 0, 1 }, { 2, 3 } };
 		private static int[, ,] edge_mask = new int[,,] { { { 2, 0 }, { 3, 1 } }, { { 1, 0 }, { 3, 2 } } };
 		private static int[,] process_edge_mask = new int[,] { { 0, 2 }, { 1, 3 } };
@@ -151,6 +161,10 @@ namespace Isosurface.AdaptiveDualContouring2D
 			return true;
 		}
 
+		/* The code for generating the contour
+		 * It has connectivity issues due to table errors
+		 * TODO: Fix
+		 */
 		public void ProcessFace(List<int> indexes)
 		{
 			if (type == QuadtreeNodeType.Internal)
@@ -223,7 +237,11 @@ namespace Isosurface.AdaptiveDualContouring2D
 
 					int m1 = (nodes[i].draw_info.corners >> c1) & 1;
 					int m2 = (nodes[i].draw_info.corners >> c2) & 1;
-
+					
+				/* We have connectivity issues, so sign change is improperly set to favor connectivity
+				 * As a result, cells that shouldn't connect do
+				 * TODO: Fix
+				 */
 					//if (nodes[i].size <= min_size)
 					{
 						min_size = nodes[i].size;
@@ -231,7 +249,6 @@ namespace Isosurface.AdaptiveDualContouring2D
 							sign_change = m1 != m2;
 					}
 				}
-
 
 				if (sign_change)
 				{
