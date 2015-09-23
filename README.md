@@ -10,11 +10,13 @@ In an effort to find the best way of making a dynamic voxel engine, I've been re
 * 2D Adaptive Dual Contouring
 * 3D Uniform Dual Contouring
 * 3D Adaptive Dual Contouring
+* Dual Marching Squares (Schaefer's and Warren's) [2D Dual Marching Cubes]
 
 **Notes**
-* The 2D implementations don't connect properly; they were my first tests with DC and have some issues, and the adaptive implementation doesn't have simplification
+* The 2D DC implementations don't connect properly; they were my first tests with DC and have some issues, and the adaptive implementation doesn't have simplification
 * My QEF solver is hardly a QEF solver; Rather, it takes a set of offsets to apply to the mass point and find the one that has the lowest error, so do **not** use this as an example of what to do
-* The QEF solver is disabled in the 3D implementations but can be enabled (simplification needs some tweaks); sharp features will be lost and mesh will be deformed if the error tolerance is high without it
+* The QEF solver is disabled in the 3D DC implementations but can be enabled (simplification needs some tweaks); sharp features will be lost and mesh will be deformed if the error tolerance is high without it
+* Dual Marching Squares currently doesn't move the dual grid vertices to their ideal locations to preserve sharp features
 
 
 **Controls**
