@@ -32,3 +32,4 @@ See Game1.cs for a more detailed outline. Each class contains at least some docu
 * C - Toggle mouse locking
 
 ![Adaptive dual contouring](http://i.imgur.com/7LLNFut.png)
+![Dual marching squares](http://i.imgur.com/gHSt3wz.png)
