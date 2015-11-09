@@ -168,8 +168,10 @@ namespace Isosurface.UniformDualContouring
 
 			Vector3 n = average_normal / (float)qef.Intersections.Count;
 			VertexPositionColorNormal[] v2 = new VertexPositionColorNormal[1];
-			Color color = new Color(n * 0.5f + Vector3.One * 0.5f);
-			v2[0] = new VertexPositionColorNormal(new Vector3((p.X + x), (p.Y + y), (p.Z + z)), color, n);
+			Vector3 c_v = n * 0.5f + Vector3.One * 0.5f;
+			c_v.Normalize();
+			Color clr = new Color(c_v);
+			v2[0] = new VertexPositionColorNormal(new Vector3((p.X + x), (p.Y + y), (p.Z + z)), clr, n);
 			VertexBuffer.SetData<VertexPositionColorNormal>(VertexCount * VertexPositionColorNormal.VertexDeclaration.VertexStride, v2, 0, 1, VertexPositionColorNormal.VertexDeclaration.VertexStride);
 			vertex_indexes[x, y, z] = VertexCount;
 			VertexCount++;

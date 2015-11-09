@@ -1,9 +1,10 @@
-﻿using System;
-/* A static sampling function class
+﻿/* A static sampling function class
  * It does not support CSG trees or have any real elegance to it
  * It's just meant as a way to test different functions
  * Also some don't even work...!
  */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -66,11 +67,11 @@ namespace Isosurface
 			float scale = 0.5f;
 			//return SimplexNoise.Noise(pos.X * scale, pos.Y * scale);
 			//return pos.Y - SimplexNoise.Noise(0, pos.X * 0.1f) * 10.0f - 16.5f;
-			float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
-			return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 6.0f));
+			//float d = Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
+			//return Math.Min(-d, Square(pos + new Vector2(6, 6), Resolution / 6.0f));
 			//return sdTorus88(pos);
-			return Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
-			return Circle(pos) - 10;
+			//return Math.Min(-Circle(pos), Circle(pos - new Vector2(8, 8), Resolution / 4));
+			//return Circle(pos);
 			return Cuboid(pos);
 		}
 
@@ -120,6 +121,13 @@ namespace Isosurface
 			return (pos - origin).LengthSquared() - radius * radius;
 		}
 
+		public static float SphereR(Vector3 pos)
+		{
+			 float radius = (float)Resolution / 3.0f - 2.0f + Noise(pos) * 10.0f;
+			Vector3 origin = new Vector3((Resolution - 2.0f) * 0.5f);
+			return (pos - origin).LengthSquared() - radius * radius;
+		}
+
 		public static float Cuboid(Vector3 pos)
 		{
 			float radius = (float)Resolution / 8.0f;
@@ -132,15 +140,22 @@ namespace Isosurface
 
 		public static float Sample(Vector3 pos)
 		{
+			//if (pos.Y > 8)
+			//	return -1;
+			//return 1;
 			//return Noise(pos);
-			return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(16, 16, 16)));
 			//return Sphere(pos);
+			//return pos.Y - Noise(pos) * 8.0f -8;
+			//return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 20);
+			//return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(4, 4, 4)));
+			//return SphereR(pos);
+			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
 			return Cuboid(pos);
 		}
 
 		public static float Noise(Vector3 pos)
 		{
-			float r = 0.02f;
+			float r = 0.06f;
 			return SimplexNoise.Noise(pos.X * r, pos.Y * r, pos.Z * r);
 		}
 
@@ -151,14 +166,11 @@ namespace Isosurface
 			return q.Length() - t.Y;
 		}
 
-		/* For some reason, normals look broken in 3D implementations
-		 * They used to look fine though...
-		 * TODO: Fix
-		 */
+		
 		public static Vector3 GetNormal(Vector3 v)
 		{
-			//can't compute gradient
-			float h = 0.001f;
+			v = new Vector3((int)Math.Round(v.X), (int)Math.Round(v.Y), (int)Math.Round(v.Z));
+			float h = 1.0f;
 			float dxp = Sample(new Vector3(v.X + h, v.Y, v.Z));
 			float dxm = Sample(new Vector3(v.X - h, v.Y, v.Z));
 			float dyp = Sample(new Vector3(v.X, v.Y + h, v.Z));

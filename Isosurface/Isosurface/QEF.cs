@@ -14,7 +14,6 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace Isosurface
 {
@@ -136,8 +135,8 @@ namespace Isosurface
 				}
 			}
 
-			if (x.X < 0 || x.Y < 0 || x.X >= 1 || x.Y >= 1)
-				x = new Vector2(mass_point.X, mass_point.Y) / (float)Intersections.Count;
+			//if (x.X < 0 || x.Y < 0 || x.X >= 1 || x.Y >= 1)
+			//	x = new Vector2(mass_point.X, mass_point.Y) / (float)Intersections.Count;
 			return Vector2.Clamp(x, Vector2.Zero, Vector2.One);
 		}
 	}

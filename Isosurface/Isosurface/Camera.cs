@@ -37,8 +37,8 @@ namespace Isosurface
 			Device = d;
 			Position = position;
 			RotationSpeed = rotSpeed;
-			RotationX = MathHelper.PiOver4;
-			RotationY = -MathHelper.Pi / 5.0f;
+			RotationX = -MathHelper.PiOver4 * 3.0f;
+			RotationY = -MathHelper.Pi * 0.2f;
 			MouseLocked = true;
 			TargetDistance = 12f;
 
@@ -53,7 +53,7 @@ namespace Isosurface
 
 		public void Update(bool forceView = false)
 		{
-			int speed = 1;
+			float speed = 0.55f;
 			if (Keyboard.GetState().IsKeyDown(Keys.W))
 				Position += Vector3.Transform(Vector3.Forward * speed, Rotation);
 			else if (Keyboard.GetState().IsKeyDown(Keys.S))

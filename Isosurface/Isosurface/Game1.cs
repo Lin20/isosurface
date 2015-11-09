@@ -53,13 +53,13 @@ namespace Isosurface
 		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
 
 		/* Add new algorithms here to see them by pressing Tab */
-		public Type[] AlgorithmTypes = { typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D), typeof(AdaptiveDualContouring.ADC3D) };
+		public Type[] AlgorithmTypes = { typeof(DMCNeilson.DMCN)/*, typeof(DualMarchingSquaresNeilson.DMSNeilson), typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D)*/, typeof(AdaptiveDualContouring.ADC3D) };
 
 		public ISurfaceAlgorithm SelectedAlgorithm { get; set; }
 		private Camera Camera { get; set; }
 
 		public const int TileSize = 14;
-		public const int Resolution = 64;
+		public const int Resolution = 32;
 
 		public DrawModes DrawMode { get; set; }
 		public RasterizerState RState { get; set; }
@@ -73,9 +73,10 @@ namespace Isosurface
 
 		protected override void Initialize()
 		{
+			DualMarchingSquaresNeilson.MarchingSquaresTableGenerator.PrintCaseTable();
 			float n = SimplexNoise.Noise(0, 0);
 			RState = new RasterizerState();
-			RState.CullMode = CullMode.None;
+			RState.CullMode = CullMode.CullClockwiseFace;
 			GraphicsDevice.RasterizerState = RState;
 			graphics.PreferredBackBufferWidth = 1600;
 			graphics.PreferredBackBufferHeight = 900;
@@ -91,7 +92,7 @@ namespace Isosurface
 
 			effect.VertexColorEnabled = true;
 
-			Camera = new Camera(GraphicsDevice, new Vector3(Resolution, Resolution, Resolution), 1f);
+			Camera = new Camera(GraphicsDevice, new Vector3(-Resolution, Resolution, -Resolution) , 1f);
 			if (SelectedAlgorithm.Is3D)
 			{
 				Camera.Update(true);
@@ -242,17 +243,17 @@ namespace Isosurface
 				GraphicsDevice.RasterizerState = rs;
 			}
 
-			SelectedAlgorithm.Draw(effect, true, DrawMode);
+			SelectedAlgorithm.Draw(effect, false, DrawMode);
 
 			if (SelectedAlgorithm.Is3D && WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
 			{
 				RasterizerState rs = new RasterizerState();
 				rs.CullMode = CullMode.None;
 				rs.FillMode = FillMode.WireFrame;
-				rs.DepthBias = -0.001f;
+				rs.DepthBias = -0.0001f;
 				GraphicsDevice.RasterizerState = rs;
 				effect.VertexColorEnabled = false;
-				SelectedAlgorithm.Draw(effect, true, DrawMode);
+				SelectedAlgorithm.Draw(effect, false, DrawMode);
 				effect.VertexColorEnabled = true;
 			}
 

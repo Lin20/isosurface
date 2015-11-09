@@ -17,7 +17,6 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace Isosurface
 {
@@ -43,7 +42,7 @@ namespace Isosurface
 					for (int z = 0; z < size; z++)
 					{
 						float dz = (float)z / (float)(size / 2) - 1.0f;
-						deltas[x * size * size + y * size + z] = new Vector3(dx, dy, dz);
+						deltas[x * size * size + y * size + z] = new Vector3(dx * 0.01f, dy * 0.01f, dz * 0.01f);
 					}
 				}
 			}
@@ -129,7 +128,7 @@ namespace Isosurface
 			Vector3 x = mass_point / (float)Intersections.Count;
 			float error = GetDistanceSquared(x);
 			this.Error = error;
-			return x;
+			//return x;
 
 			if (Math.Abs(error) >= 0.0001f)
 			{

@@ -92,7 +92,7 @@ namespace Isosurface
 			{
 				Device.Indices = IndexBuffer;
 				if (Is3D)
-					Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VertexCount, 0, IndexCount / 3);
+					Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VertexCount, 0, Math.Min(1048575, IndexCount / 3));
 				else
 					Device.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, VertexCount, 0, IndexCount / 2);
 				Device.Indices = null;

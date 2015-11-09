@@ -117,7 +117,7 @@ namespace Isosurface.AdaptiveDualContouring
 			this.type = OctreeNodeType.Internal;
 			int v_index = 0;
 			ConstructNodes(vertices, grid_size, 1);
-			Simplify(threshold, false);
+			//Simplify(threshold, false);
 			return v_index;
 		}
 
@@ -160,7 +160,7 @@ namespace Isosurface.AdaptiveDualContouring
 
 			Task[] threads = new Task[8];
 			bool[] return_values = new bool[8];
-			
+
 			for (int i = 0; i < 8; i++)
 			{
 				Vector3 offset = new Vector3(i / 4, i % 4 / 2, i % 2);
@@ -388,12 +388,6 @@ namespace Isosurface.AdaptiveDualContouring
 
 			for (int i = 0; i < 4; i++)
 			{
-				if (nodes[i].size < min_size)
-					min_size = nodes[i].size;
-			}
-
-			for (int i = 0; i < 4; i++)
-			{
 				int edge = processEdgeMask[direction, i];
 				int c1 = edgevmap[edge, 0];
 				int c2 = edgevmap[edge, 1];
@@ -401,10 +395,17 @@ namespace Isosurface.AdaptiveDualContouring
 				int m1 = (nodes[i].draw_info.corners >> c1) & 1;
 				int m2 = (nodes[i].draw_info.corners >> c2) & 1;
 
+				if (nodes[i].size < min_size)
+				{
+					min_size = nodes[i].size;
+					min_index = i;
+					flip = m1 == 1;
+					sign_changed = ((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0));
+				}
+
 				indices[i] = nodes[i].draw_info.index;
 
-				if (nodes[i].size == min_size && (m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0))
-					sign_changed = true;
+				//sign_changed = true;
 			}
 
 			if (sign_changed)
