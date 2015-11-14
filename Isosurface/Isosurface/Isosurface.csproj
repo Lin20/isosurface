@@ -87,6 +87,8 @@
     <Compile Include="DualMarchingSquares\Quadtree.cs" />
     <Compile Include="DualMarchingSquaresNeilson\MarchingSquaresTableGenerator.cs" />
     <Compile Include="ManifoldDC\MDC3D.cs" />
+    <Compile Include="ManifoldDC\Octree.cs" />
+    <Compile Include="ManifoldDC\Utilities.cs" />
     <Compile Include="Pair.cs" />
     <Compile Include="QEFSolver.cs" />
     <Compile Include="QEFSolver\Mat3.cs" />

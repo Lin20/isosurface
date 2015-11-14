@@ -146,7 +146,7 @@ namespace Isosurface
 			//return Noise(pos);
 			//return Sphere(pos);
 			//return pos.Y - Noise(pos) * 8.0f -8;
-			//return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 20);
+			return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 8);
 			//return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(4, 4, 4)));
 			//return SphereR(pos);
 			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
@@ -155,7 +155,7 @@ namespace Isosurface
 
 		public static float Noise(Vector3 pos)
 		{
-			float r = 0.06f;
+			float r = 0.05f;
 			return SimplexNoise.Noise(pos.X * r, pos.Y * r, pos.Z * r);
 		}
 
@@ -169,8 +169,8 @@ namespace Isosurface
 		
 		public static Vector3 GetNormal(Vector3 v)
 		{
-			v = new Vector3((int)Math.Round(v.X), (int)Math.Round(v.Y), (int)Math.Round(v.Z));
-			float h = 1.0f;
+			//v = new Vector3((int)Math.Round(v.X), (int)Math.Round(v.Y), (int)Math.Round(v.Z));
+			float h = 0.001f;
 			float dxp = Sample(new Vector3(v.X + h, v.Y, v.Z));
 			float dxm = Sample(new Vector3(v.X - h, v.Y, v.Z));
 			float dyp = Sample(new Vector3(v.X, v.Y + h, v.Z));

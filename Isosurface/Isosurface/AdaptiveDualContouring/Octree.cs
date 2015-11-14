@@ -40,7 +40,7 @@ namespace Isosurface.AdaptiveDualContouring
 		public int corners;
 		public Vector3 position;
 		public Vector3 averageNormal;
-		QEF3D qef;
+		public QEFProper.QEFSolver qef;
 	}
 
 	public class OctreeNode
@@ -117,7 +117,7 @@ namespace Isosurface.AdaptiveDualContouring
 			this.type = OctreeNodeType.Internal;
 			int v_index = 0;
 			ConstructNodes(vertices, grid_size, 1);
-			//Simplify(threshold, false);
+			Simplify(threshold, false);
 			return v_index;
 		}
 
@@ -231,6 +231,7 @@ namespace Isosurface.AdaptiveDualContouring
 			//return true;
 
 			QEF3D qef = new QEF3D();
+			QEFProper.QEFSolver qefp = new QEFProper.QEFSolver();
 			Vector3 average_normal = Vector3.Zero;
 			for (int i = 0; i < 12; i++)
 			{
@@ -248,19 +249,22 @@ namespace Isosurface.AdaptiveDualContouring
 				Vector3 p1 = new Vector3((float)((c1 / 4)), (float)((c1 % 4 / 2)), (float)((c1 % 2)));
 				Vector3 p2 = new Vector3((float)((c2 / 4)), (float)((c2 % 4 / 2)), (float)((c2 % 2)));
 
-				Vector3 intersection = Sampler.GetIntersection(p1, p2, d1, d2);
-				Vector3 normal = Sampler.GetNormal(intersection + position);//GetNormal(x, y);
+				Vector3 intersection = Sampler.GetIntersection(p1, p2, d1, d2) + position;
+				Vector3 normal = Sampler.GetNormal(intersection);//GetNormal(x, y);
 				average_normal += normal;
 
 				qef.Add(intersection, normal);
+				qefp.Add(intersection, normal);
 			}
 
 			Vector3 n = average_normal / (float)qef.Intersections.Count;
 			n.Normalize();
 			draw_info = new OctreeDrawInfo();
-			draw_info.position = position + qef.Solve2(0, 0, 0);
+			//draw_info.position = position + qef.Solve2(0, 0, 0);
+			draw_info.position = qefp.Solve(1e-6f, 4, 1e-6f);
 			draw_info.corners = corners;
 			draw_info.averageNormal = n;
+			draw_info.qef = qefp;
 			//vertices.Add(new VertexPositionColorNormal(position + draw_info.position, Color.LightGreen, n));
 
 			type = OctreeNodeType.Leaf;
@@ -441,7 +445,8 @@ namespace Isosurface.AdaptiveDualContouring
 			int[] signs = { -1, -1, -1, -1, -1, -1, -1, -1 };
 			int mid_sign = -1;
 			bool is_collapsible = true;
-			QEF3D qef = new QEF3D();
+			//QEF3D qef = new QEF3D();
+			QEFProper.QEFSolver qef = new QEFProper.QEFSolver();
 			Random rnd = new Random();
 
 			float t = threshold;
@@ -459,7 +464,9 @@ namespace Isosurface.AdaptiveDualContouring
 					is_collapsible = false;
 				else
 				{
-					qef.Add(child.draw_info.position, child.draw_info.averageNormal);
+					//qef.Add(child.draw_info.position, child.draw_info.averageNormal);
+					//if (child.draw_info.qef != null)
+						qef.Add(ref child.draw_info.qef.data);
 
 					mid_sign = (child.draw_info.corners >> (7 - i)) & 1;
 					signs[i] = (child.draw_info.corners >> i) & 1;
@@ -469,8 +476,9 @@ namespace Isosurface.AdaptiveDualContouring
 			if (!is_collapsible)
 				return;
 
-			Vector3 pos = qef.Solve2(0, 0, 0);
-			float error = qef.Error;
+			//Vector3 pos = qef.Solve2(0, 0, 0);
+			Vector3 pos = qef.Solve(threshold, 4, threshold);
+			float error = qef.GetError();
 
 			if (error > threshold)
 				return;
@@ -499,6 +507,7 @@ namespace Isosurface.AdaptiveDualContouring
 			normal.Normalize();
 			draw_info.averageNormal = normal;
 			draw_info.position = pos;
+			draw_info.qef = qef;
 
 			for (int i = 0; i < 8; i++)
 			{

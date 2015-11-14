@@ -48,12 +48,14 @@ namespace Isosurface
 
 			Update();
 			UpdateViewMatrix();
-			Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, d.Viewport.AspectRatio, 0.1f, 1000f);
+			Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, d.Viewport.AspectRatio, 0.01f, 1000f);
 		}
 
 		public void Update(bool forceView = false)
 		{
-			float speed = 0.55f;
+			float speed = 0.05f;
+			if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
+				speed *= 10.0f;
 			if (Keyboard.GetState().IsKeyDown(Keys.W))
 				Position += Vector3.Transform(Vector3.Forward * speed, Rotation);
 			else if (Keyboard.GetState().IsKeyDown(Keys.S))
