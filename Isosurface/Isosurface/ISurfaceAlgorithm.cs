@@ -74,7 +74,10 @@ namespace Isosurface
 			}
 
 			if ((IsIndexed && IndexCount == 0) || (!IsIndexed && VertexCount == 0) || ((mode & DrawModes.Mesh) == 0))
+			{
+				Device.SetVertexBuffer(null);
 				return;
+			}
 
 			if (enable_lighting)
 			{

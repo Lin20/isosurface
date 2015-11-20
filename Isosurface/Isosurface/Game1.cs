@@ -130,7 +130,7 @@ namespace Isosurface
 			if (SelectedAlgorithm.Is3D)
 			{
 				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up);
-				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 0.1f, 1000.0f);
+				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 100.0f);
 				effect.EnableDefaultLighting();
 			}
 			else

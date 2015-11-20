@@ -174,6 +174,7 @@ namespace Isosurface.QEFProper
 			this.hasSolution = true;
 			//return result;
 			return x;
+			return MassPoint;
 		}
 
 		private void SetAta()

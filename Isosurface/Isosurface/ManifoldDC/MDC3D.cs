@@ -123,14 +123,16 @@ namespace Isosurface.ManifoldDC
 			watch.Start();
 			List<VertexPositionColorNormal> vs = new List<VertexPositionColorNormal>();
 			tree.ConstructBase(Resolution, threshold, ref vs);
+			tree.ClusterCellBase(threshold);
 			watch.Stop();
-			Vertices = vs.ToList();
+			//Vertices = vs.ToList();
 
-			//tree.GenerateVertexBuffer(Vertices);
+			tree.GenerateVertexBuffer(Vertices);
 
 			if (Vertices.Count > 0)
 				VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
 			VertexCount = Vertices.Count;
+			OutlineLocation = 0;
 			ConstructTreeGrid(tree);
 			CalculateIndexes();
 
@@ -139,7 +141,7 @@ namespace Isosurface.ManifoldDC
 
 		public void ConstructTreeGrid(OctreeNode node)
 		{
-			if (node == null)
+			if (node == null || node.type == NodeType.Leaf)
 				return;
 			VertexPositionColor[] vs = new VertexPositionColor[24];
 			int x = (int)node.position.X;
@@ -203,7 +205,7 @@ namespace Isosurface.ManifoldDC
 				outline_location += 16;
 			}*/
 
-			if (node.type != NodeType.Leaf)
+			if (node.type == NodeType.Internal)
 			{
 				for (int i = 0; i < 8; i++)
 				{
