@@ -121,9 +121,15 @@ namespace Isosurface
 			return (pos - origin).LengthSquared() - radius * radius;
 		}
 
+		public static float Sphere(Vector3 pos, float radius)
+		{
+			Vector3 origin = new Vector3((Resolution - 2.0f) * 0.5f);
+			return (pos - origin).LengthSquared() - radius * radius;
+		}
+
 		public static float SphereR(Vector3 pos)
 		{
-			 float radius = (float)Resolution / 3.0f - 2.0f + Noise(pos) * 10.0f;
+			 float radius = (float)Resolution / 3.0f - 2.0f + Noise(pos) * 7.0f;
 			Vector3 origin = new Vector3((Resolution - 2.0f) * 0.5f);
 			return (pos - origin).LengthSquared() - radius * radius;
 		}
@@ -138,6 +144,24 @@ namespace Isosurface
 			return Math.Min(m, max.Length());
 		}
 
+		public static float Cuboid(Vector3 pos, float radius)
+		{
+			Vector3 local = pos - new Vector3(Resolution / 2, Resolution / 2, Resolution / 2);
+			Vector3 d = new Vector3(Math.Abs(local.X), Math.Abs(local.Y), Math.Abs(local.Z)) - new Vector3(radius, radius, radius);
+			float m = Math.Max(d.X, Math.Max(d.Y, d.Z));
+			Vector3 max = d;
+			return Math.Min(m, max.Length());
+		}
+
+		public static float Cuboid(Vector3 pos, Vector3 radius)
+		{
+			Vector3 local = pos - new Vector3(Resolution / 2, Resolution / 2, Resolution / 2);
+			Vector3 d = new Vector3(Math.Abs(local.X), Math.Abs(local.Y), Math.Abs(local.Z)) - radius;
+			float m = Math.Max(d.X, Math.Max(d.Y, d.Z));
+			Vector3 max = d;
+			return Math.Min(m, max.Length());
+		}
+
 		public static float Sample(Vector3 pos)
 		{
 			//if (pos.Y > 8)
@@ -146,9 +170,12 @@ namespace Isosurface
 			//return Noise(pos);
 			//return Sphere(pos);
 			//return pos.Y - Noise(pos) * 8.0f -8;
-			return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 8);
-			//return Math.Min(Sphere(pos), Cuboid(pos - new Vector3(4, 4, 4)));
+			//return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 8);
+			//return Math.Min(Sphere(pos, Resolution / 8.0f), Cuboid(pos - new Vector3(4, 4, 4)));
+			//return Math.Min(Cuboid(pos + new Vector3(0, 8, 0), Resolution / 4.0f), Sphere(pos, Resolution / 8.0f));
 			//return SphereR(pos);
+			return Math.Min(Cuboid(pos + new Vector3(0, 2, 0), new Vector3(16, 4, 16)), Sphere(pos - new Vector3(0,8,0), 4));
+			//return Cuboid(pos - new Vector3(8, 8, 8));
 			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
 			return Cuboid(pos);
 		}

@@ -89,7 +89,7 @@ namespace Isosurface.ManifoldDC
 					this.vertices[i].index = vertices.Count;
 					Color c = new Color(this.vertices[i].normal * 0.5f + Vector3.One * 0.5f);
 					vertices.Add(new VertexPositionColorNormal(this.vertices[i].qef.Solve(1e-6f, 4, 1e-6f), c, this.vertices[i].normal));
-					
+
 				}
 			}
 		}
@@ -111,8 +111,8 @@ namespace Isosurface.ManifoldDC
 				bool b = children[i].ConstructNodes(error, ref vertices);
 				if (b)
 					has_children = true;
-				//else
-				//	children[i] = null;
+				else
+					children[i] = null;
 			}
 
 			return has_children;
@@ -244,7 +244,7 @@ namespace Isosurface.ManifoldDC
 			if (nodes[0] == null || nodes[1] == null)
 				return;
 
-			if (nodes[0].type == NodeType.Internal || nodes[1].type == NodeType.Internal)
+			if (nodes[0].type != NodeType.Leaf || nodes[1].type != NodeType.Leaf)
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -252,7 +252,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 2; j++)
 					{
-						if (nodes[j].type == NodeType.Leaf || nodes[j].type == NodeType.Collapsed)
+						if (nodes[j].type == NodeType.Leaf)
 							face_nodes[j] = nodes[j];
 						else
 							face_nodes[j] = nodes[j].children[Utilities.TFaceProcFaceMask[direction, i, j]];
@@ -273,7 +273,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
-						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf || nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Collapsed)
+						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]];
 						else
 							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].children[Utilities.TFaceProcEdgeMask[direction, i, 1 + j]];
@@ -289,7 +289,7 @@ namespace Isosurface.ManifoldDC
 			if (nodes[0] == null || nodes[1] == null || nodes[2] == null || nodes[3] == null)
 				return;
 
-			if (nodes[0].type != NodeType.Internal && nodes[1].type != NodeType.Internal && nodes[2].type != NodeType.Internal && nodes[3].type != NodeType.Internal)
+			if (nodes[0].type == NodeType.Leaf && nodes[1].type == NodeType.Leaf && nodes[2].type == NodeType.Leaf && nodes[3].type == NodeType.Leaf)
 			{
 				ProcessIndexes(nodes, direction, indexes);
 			}
@@ -301,7 +301,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
-						if (nodes[j].type == NodeType.Leaf || nodes[j].type == NodeType.Collapsed)
+						if (nodes[j].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[j];
 						else
 							edge_nodes[j] = nodes[j].children[Utilities.TEdgeProcEdgeMask[direction, i, j]];
@@ -368,27 +368,45 @@ namespace Isosurface.ManifoldDC
 				//sign_changed = true;
 			}
 
+
+			/*
+			 * Next generate the triangles.
+			 * Because we're generating from the finest levels that were collapsed, many triangles will collapse to edges or vertices.
+			 * That's why we check if the indices are different and discard the triangle, as mentioned in the paper.
+			 */
 			if (sign_changed)
 			{
 				if (!flip)
 				{
-					indexes.Add(indices[0]);
-					indexes.Add(indices[1]);
-					indexes.Add(indices[3]);
+					if (indices[0] != indices[1] && indices[1] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[1]);
+						indexes.Add(indices[3]);
+					}
 
-					indexes.Add(indices[0]);
-					indexes.Add(indices[3]);
-					indexes.Add(indices[2]);
+					if (indices[0] != indices[2] && indices[2] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[3]);
+						indexes.Add(indices[2]);
+					}
 				}
 				else
 				{
-					indexes.Add(indices[0]);
-					indexes.Add(indices[3]);
-					indexes.Add(indices[1]);
+					if (indices[0] != indices[1] && indices[1] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[3]);
+						indexes.Add(indices[1]);
+					}
 
-					indexes.Add(indices[0]);
-					indexes.Add(indices[2]);
-					indexes.Add(indices[3]);
+					if (indices[0] != indices[2] && indices[2] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[2]);
+						indexes.Add(indices[3]);
+					}
 				}
 			}
 		}
@@ -415,6 +433,10 @@ namespace Isosurface.ManifoldDC
 			if (type != NodeType.Internal)
 				return;
 
+			if (size == 16)
+			{
+			}
+
 			/*
 			 * First cluster all the children nodes
 			 */
@@ -436,6 +458,10 @@ namespace Isosurface.ManifoldDC
 					mid_sign = (children[i].corners >> (7 - i)) & 1;
 					signs[i] = (children[i].corners >> i) & 1;
 				}
+			}
+
+			if (size == 16)
+			{
 			}
 
 			if (!is_collapsible)
@@ -510,36 +536,42 @@ namespace Isosurface.ManifoldDC
 					QEFProper.QEFSolver qef = new QEFProper.QEFSolver();
 					Vector3 normal = Vector3.Zero;
 					int count = 0;
+					Vertex first_vertex = null;
 					foreach (Vertex v in collected_vertices)
 					{
 						if (v.surface_index == i)
 						{
+							if(first_vertex == null)
+								first_vertex = v;
 							if (!v.qef.hasSolution)
 								v.qef.Solve(1e-6f, 4, 1e-6f);
-							float e = v.qef.GetError();
-							if (v.qef.GetError() > error)
-							{
-								foreach (Vertex v2 in collected_vertices)
-								{
-									v2.surface_index = -1;
-									v2.parent = null;
-								}
-								return;
-							}
-							else
-								v.collapsible = true;
 							qef.Add(ref v.qef.data);
 							normal += v.normal;
 							count++;
 						}
 					}
+
 					if (count == 0)
+					{
 						continue;
+					}
+
 					normal /= (float)count;
 					normal.Normalize();
 					Vertex new_vertex = new Vertex();
 					new_vertex.normal = normal;
 					new_vertex.qef = qef;
+					qef.Solve(1e-6f, 4, 1e-6f);
+					float err = qef.GetError();
+					if (err > error)
+					{
+						foreach (Vertex v2 in collected_vertices)
+						{
+							v2.surface_index = -1;
+							v2.parent = null;
+						}
+						return;
+					}
 					new_vertices.Add(new_vertex);
 
 					foreach (Vertex v in collected_vertices)
@@ -554,16 +586,7 @@ namespace Isosurface.ManifoldDC
 			}
 			else
 			{
-				//return;
-			}
-
-			corners = 0;
-			for (int i = 0; i < 8; i++)
-			{
-				if (signs[i] == -1)
-					corners |= (byte)(mid_sign << i);
-				else
-					corners |= (byte)(signs[i] << i);
+				return;
 			}
 
 			this.type = NodeType.Collapsed;
@@ -585,7 +608,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 2; j++)
 					{
-						if (nodes[j].type != NodeType.Internal)
+						if (nodes[j].type == NodeType.Leaf)
 							face_nodes[j] = nodes[j];
 						else
 							face_nodes[j] = nodes[j].children[Utilities.TFaceProcFaceMask[direction, i, j]];
@@ -606,7 +629,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
-						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf || nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Collapsed)
+						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]];
 						else
 							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].children[Utilities.TFaceProcEdgeMask[direction, i, 1 + j]];
@@ -622,7 +645,7 @@ namespace Isosurface.ManifoldDC
 			if (nodes[0] == null || nodes[1] == null || nodes[2] == null || nodes[3] == null)
 				return;
 
-			if (nodes[0].type != NodeType.Internal && nodes[1].type != NodeType.Internal && nodes[2].type != NodeType.Internal && nodes[3].type != NodeType.Internal)
+			if (nodes[0].type == NodeType.Leaf && nodes[1].type == NodeType.Leaf && nodes[2].type == NodeType.Leaf && nodes[3].type == NodeType.Leaf)
 			{
 				ClusterIndexes(nodes, direction, ref surface_index, collected_vertices);
 			}
@@ -634,7 +657,7 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
-						if (nodes[j].type == NodeType.Leaf || nodes[j].type == NodeType.Collapsed)
+						if (nodes[j].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[j];
 						else
 							edge_nodes[j] = nodes[j].children[Utilities.TEdgeProcEdgeMask[direction, i, j]];
@@ -692,8 +715,13 @@ namespace Isosurface.ManifoldDC
 					continue;
 				if (vertices[i].surface_index != -1)
 				{
-					surface_index = vertices[i].surface_index;
-					break;
+					if (surface_index != -1 && surface_index != vertices[i].surface_index)
+					{
+						AssignSurface(collected_vertices, vertices[i].surface_index, surface_index);
+					}
+					else if(surface_index == -1)
+						surface_index = vertices[i].surface_index;
+					//break;
 				}
 			}
 
@@ -701,13 +729,22 @@ namespace Isosurface.ManifoldDC
 				surface_index = max_surface_index++;
 			for (int i = 0; i < 4; i++)
 			{
-				if(vertices[i] == null)
+				if (vertices[i] == null)
 					continue;
 				if (vertices[i].surface_index == -1)
 				{
-					vertices[i].surface_index = surface_index;
 					collected_vertices.Add(vertices[i]);
 				}
+				vertices[i].surface_index = surface_index;
+			}
+		}
+
+		private static void AssignSurface(List<Vertex> vertices, int from, int to)
+		{
+			foreach (Vertex v in vertices)
+			{
+				if (v != null && v.surface_index == from)
+					v.surface_index = to;
 			}
 		}
 	}

@@ -473,11 +473,15 @@ namespace Isosurface.AdaptiveDualContouring
 				}
 			}
 
+			if (size == 16)
+			{
+			}
+
 			if (!is_collapsible)
 				return;
 
 			//Vector3 pos = qef.Solve2(0, 0, 0);
-			Vector3 pos = qef.Solve(threshold, 4, threshold);
+			Vector3 pos = qef.Solve(1e-6f, 4, 1e-6f);
 			float error = qef.GetError();
 
 			if (error > threshold)
