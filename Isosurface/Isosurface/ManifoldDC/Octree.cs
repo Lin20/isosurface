@@ -77,14 +77,14 @@ namespace Isosurface.ManifoldDC
 				}
 			}
 
-			if (type != NodeType.Internal)
+			//if (type != NodeType.Internal)
 			{
 				if (vertices == null || this.vertices.Length == 0)
 					return;
 
 				for (int i = 0; i < this.vertices.Length; i++)
 				{
-					if (this.vertices[i] == null)
+					if (this.vertices[i] == null || this.vertices[i].parent != null)
 						continue;
 					this.vertices[i].index = vertices.Count;
 					Color c = new Color(this.vertices[i].normal * 0.5f + Vector3.One * 0.5f);
@@ -464,8 +464,8 @@ namespace Isosurface.ManifoldDC
 			{
 			}
 
-			if (!is_collapsible)
-				return;
+			//if (!is_collapsible)
+			//	return;
 
 			int surface_index = 0;
 			List<Vertex> collected_vertices = new List<Vertex>();
@@ -528,6 +528,7 @@ namespace Isosurface.ManifoldDC
 				}
 			}
 
+			int clustered_count = 0;
 			if (collected_vertices.Count > 0)
 			{
 
@@ -541,7 +542,7 @@ namespace Isosurface.ManifoldDC
 					{
 						if (v.surface_index == i)
 						{
-							if(first_vertex == null)
+							if (first_vertex == null)
 								first_vertex = v;
 							if (!v.qef.hasSolution)
 								v.qef.Solve(1e-6f, 4, 1e-6f);
@@ -551,28 +552,34 @@ namespace Isosurface.ManifoldDC
 						}
 					}
 
+					/*
+					 * One vertex might have an error greater than the threshold, preventing simplification.
+					 * When it's just one, we can ignore the error and proceed.
+					 */
 					if (count == 0)
 					{
 						continue;
 					}
 
+					Vertex new_vertex = new Vertex();
 					normal /= (float)count;
 					normal.Normalize();
-					Vertex new_vertex = new Vertex();
 					new_vertex.normal = normal;
 					new_vertex.qef = qef;
+					new_vertices.Add(new_vertex);
+
 					qef.Solve(1e-6f, 4, 1e-6f);
 					float err = qef.GetError();
-					if (err > error)
+					if (err <= error)
+						clustered_count++;
+					//if (count > 1)
 					{
-						foreach (Vertex v2 in collected_vertices)
+						if (err > error)
 						{
-							v2.surface_index = -1;
-							v2.parent = null;
+							continue;
 						}
-						return;
 					}
-					new_vertices.Add(new_vertex);
+					
 
 					foreach (Vertex v in collected_vertices)
 					{
@@ -589,7 +596,17 @@ namespace Isosurface.ManifoldDC
 				return;
 			}
 
-			this.type = NodeType.Collapsed;
+			if (clustered_count == 0)
+			{
+				foreach (Vertex v2 in collected_vertices)
+				{
+					v2.surface_index = -1;
+					v2.parent = null;
+				}
+				return;
+			}
+
+			//this.type = NodeType.Collapsed;
 			//for (int i = 0; i < 8; i++)
 			//	children[i] = null;
 			this.vertices = new_vertices.ToArray();
@@ -600,7 +617,7 @@ namespace Isosurface.ManifoldDC
 			if (nodes[0] == null || nodes[1] == null)
 				return;
 
-			if (nodes[0].type == NodeType.Internal || nodes[1].type == NodeType.Internal)
+			if (nodes[0].type != NodeType.Leaf || nodes[1].type != NodeType.Leaf)
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -702,12 +719,14 @@ namespace Isosurface.ManifoldDC
 				}
 			}
 
-			if (v_count > 0 && v_count < 4)
-			{
-				return;
-			}
 			if (v_count < 4)
 				return;
+
+			if (!(vertices[0] != vertices[1] && vertices[1] != vertices[2] && vertices[2] != vertices[3]))
+			{
+				//return;
+			}
+
 			int surface_index = -1;
 			for (int i = 0; i < 4; i++)
 			{
@@ -719,7 +738,7 @@ namespace Isosurface.ManifoldDC
 					{
 						AssignSurface(collected_vertices, vertices[i].surface_index, surface_index);
 					}
-					else if(surface_index == -1)
+					else if (surface_index == -1)
 						surface_index = vertices[i].surface_index;
 					//break;
 				}

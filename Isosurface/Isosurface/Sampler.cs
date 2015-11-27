@@ -175,7 +175,7 @@ namespace Isosurface
 			//return Math.Min(Cuboid(pos + new Vector3(0, 8, 0), Resolution / 4.0f), Sphere(pos, Resolution / 8.0f));
 			//return SphereR(pos);
 			return Math.Min(Cuboid(pos + new Vector3(0, 2, 0), new Vector3(16, 4, 16)), Sphere(pos - new Vector3(0,8,0), 4));
-			//return Cuboid(pos - new Vector3(8, 8, 8));
+			return Math.Min(Cuboid(pos), Cuboid(pos - new Vector3(4, 4, 4)));
 			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
 			return Cuboid(pos);
 		}

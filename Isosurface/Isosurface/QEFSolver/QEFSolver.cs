@@ -91,6 +91,7 @@ namespace Isosurface.QEFProper
 		public Vector3 atb, x;
 		public Vector3 MassPoint { get; set; }
 		public bool hasSolution;
+		public float last_error;
 
 		public QEFSolver()
 		{
@@ -145,7 +146,8 @@ namespace Isosurface.QEFProper
 			}
 
 			Vector3 atax = this.ata.Vmul(pos);
-			return Vector3.Dot(pos, atax) - 2 * Vector3.Dot(pos, this.atb) + this.data.btb;
+			last_error = Vector3.Dot(pos, atax) - 2 * Vector3.Dot(pos, this.atb) + this.data.btb;
+			return last_error;
 		}
 
 		public void Reset()
