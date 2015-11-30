@@ -16,11 +16,12 @@ namespace Isosurface.ManifoldDC
 	public class MDC3D : ISurfaceAlgorithm
 	{
 		public override string Name { get { return "Manifold Dual Contouring"; } }
+		public const bool FlatShading = true;
 
 		OctreeNode tree;
 
 		public MDC3D(GraphicsDevice device, int resolution, int size)
-			: base(device, resolution, size, true)
+			: base(device, resolution, size, true, !FlatShading)
 		{
 			for (int i = 0; i < 256; i++)
 			{
@@ -205,7 +206,7 @@ namespace Isosurface.ManifoldDC
 				outline_location += 16;
 			}*/
 
-			if (node.type == NodeType.Internal)
+			if (node.type == NodeType.Internal && node.vertices.Length == 0)
 			{
 				for (int i = 0; i < 8; i++)
 				{
@@ -216,15 +217,92 @@ namespace Isosurface.ManifoldDC
 
 		public void CalculateIndexes()
 		{
-			Indices.Clear();
+			if (!FlatShading)
+				Indices.Clear();
+			else
+				Indices = new List<int>();
+			List<int> tri_count = new List<int>();
 
-			tree.ProcessCell(Indices);
-			IndexCount = Indices.Count;
-			if (Indices.Count == 0)
-				return;
+			tree.ProcessCell(Indices, tri_count);
+			if (!FlatShading)
+			{
+				IndexCount = Indices.Count;
+				if (Indices.Count == 0)
+					return;
+			}
 
-			IndexBuffer.SetData<int>(Indices.ToArray());
+			if (!FlatShading)
+			{
+				IndexBuffer.SetData<int>(Indices.ToArray());
+			}
+			else
+			{
+				List<VertexPositionColorNormal> new_vertices = new List<VertexPositionColorNormal>();
+				int t_index = 0;
+				for (int i = 0; i < Indices.Count; i += 3)
+				{
+					int count = tri_count[t_index++];
+					Vector3 n = Vector3.Zero;
+					if (count == 1)
+						n = GetNormalQ(Vertices, Indices[i + 2], Indices[i + 0], Indices[i + 1]);
+					else
+						n = GetNormalQ(Vertices, Indices[i + 2], Indices[i + 0], Indices[i + 1], Indices[i + 5], Indices[i + 3], Indices[i + 4]);
+					Vector3 nc = n * 0.5f + Vector3.One * 0.5f;
+					nc.Normalize();
+					Color c = new Color(nc);
 
+					VertexPositionColorNormal v0 = new VertexPositionColorNormal(Vertices[Indices[i + 0]].Position, c, n);
+					VertexPositionColorNormal v1 = new VertexPositionColorNormal(Vertices[Indices[i + 1]].Position, c, n);
+					VertexPositionColorNormal v2 = new VertexPositionColorNormal(Vertices[Indices[i + 2]].Position, c, n);
+
+					new_vertices.Add(v0);
+					new_vertices.Add(v1);
+					new_vertices.Add(v2);
+
+					if (count > 1)
+					{
+						VertexPositionColorNormal v3 = new VertexPositionColorNormal(Vertices[Indices[i + 3]].Position, c, n);
+						VertexPositionColorNormal v4 = new VertexPositionColorNormal(Vertices[Indices[i + 4]].Position, c, n);
+						VertexPositionColorNormal v5 = new VertexPositionColorNormal(Vertices[Indices[i + 5]].Position, c, n);
+
+						new_vertices.Add(v3);
+						new_vertices.Add(v4);
+						new_vertices.Add(v5);
+
+						i += 3;
+					}
+				}
+
+				VertexBuffer.SetData<VertexPositionColorNormal>(new_vertices.ToArray());
+				VertexCount = new_vertices.Count;
+			}
+		}
+
+		private Vector3 GetNormalQ(List<VertexPositionColorNormal> verts, params int[] indexes)
+		{
+			Vector3 a = verts[indexes[2]].Position - verts[indexes[1]].Position;
+			Vector3 b = verts[indexes[2]].Position - verts[indexes[0]].Position;
+			Vector3 c = Vector3.Cross(a, b);
+
+			if (indexes.Length == 6)
+			{
+				a = verts[indexes[5]].Position - verts[indexes[4]].Position;
+				b = verts[indexes[5]].Position - verts[indexes[3]].Position;
+				Vector3 d = Vector3.Cross(a, b);
+
+				//c.Normalize();
+				if (float.IsNaN(c.X))
+					c = Vector3.Zero;
+				if (float.IsNaN(d.X))
+					d = Vector3.Zero;
+
+				c += d;
+				c /= 2.0f;
+			}
+
+			c.Normalize();
+
+			return -c;
 		}
 	}
 }

@@ -170,13 +170,19 @@ namespace Isosurface
 			//return Noise(pos);
 			//return Sphere(pos);
 			//return pos.Y - Noise(pos) * 8.0f -8;
-			//return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 8);
+			return Math.Min(Cuboid(pos), pos.Y - Noise(pos) * 16.0f - 8);
 			//return Math.Min(Sphere(pos, Resolution / 8.0f), Cuboid(pos - new Vector3(4, 4, 4)));
 			//return Math.Min(Cuboid(pos + new Vector3(0, 8, 0), Resolution / 4.0f), Sphere(pos, Resolution / 8.0f));
 			//return SphereR(pos);
-			return Math.Min(Cuboid(pos + new Vector3(0, 2, 0), new Vector3(16, 4, 16)), Sphere(pos - new Vector3(0,8,0), 4));
-			return Math.Min(Cuboid(pos), Cuboid(pos - new Vector3(4, 4, 4)));
+			//return Math.Min(Cuboid(pos + new Vector3(0, 2, 0), new Vector3(16, 4, 16)), Sphere(pos - new Vector3(0,8,0), 4));
+			//return Math.Min(Cuboid(pos), Cuboid(pos - new Vector3(4, 4, 4)));
 			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
+			//return Cuboid(pos + new Vector3(3, 3, 3));
+			//return Math.Min(Cuboid(pos + new Vector3(5, 5, 5), 2), Cuboid(pos - new Vector3(4, 4, 4), 4));
+			//return CappedCylinder(pos - new Vector3(Resolution / 2.0f), new Vector2(4, 8f)) - 0.5f;
+			//return Math.Min(Sphere(pos + new Vector3(1, 1, 1), 4), Sphere(pos - new Vector3(4, 4, 4), 4));
+			//return Math.Max(Cuboid(pos), -Sphere(pos + new Vector3(8, 8, 8)));
+			return Cuboid(pos) * SphereR(pos);
 			return Cuboid(pos);
 		}
 
@@ -191,6 +197,14 @@ namespace Isosurface
 			Vector2 t = new Vector2(Resolution / 8, Resolution / 8);
 			Vector2 q = new Vector2(new Vector2(pos.X, pos.Z).Length() - t.X, pos.Y);
 			return q.Length() - t.Y;
+		}
+
+		public static float CappedCylinder(Vector3 p, Vector2 h)
+		{
+			Vector2 d = new Vector2((float)Math.Abs(Math.Sqrt(p.X * p.X + p.Z * p.Z)), Math.Abs(p.Y)) - h;
+			d = new Vector2(Math.Max(d.X, 0), Math.Max(d.Y, 0));
+			float f = Math.Min(Math.Max(d.X, d.Y), 0.0f) + d.Length();
+			return f;
 		}
 
 		

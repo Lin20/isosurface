@@ -138,7 +138,9 @@ namespace Isosurface.AdaptiveDualContouring
 					return;
 
 				draw_info.index = vertices.Count;
-				Color c = new Color(draw_info.averageNormal * 0.5f + Vector3.One * 0.5f);
+				Vector3 cn = draw_info.averageNormal * 0.5f + Vector3.One * 0.5f;
+				cn.Normalize();
+				Color c = new Color(cn);
 				vertices.Add(new VertexPositionColorNormal(draw_info.position, c, draw_info.averageNormal));
 			}
 		}
@@ -416,23 +418,35 @@ namespace Isosurface.AdaptiveDualContouring
 			{
 				if (!flip)
 				{
-					indexes.Add(indices[0]);
-					indexes.Add(indices[1]);
-					indexes.Add(indices[3]);
+					if (indices[0] != indices[1] && indices[1] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[1]);
+						indexes.Add(indices[3]);
+					}
 
-					indexes.Add(indices[0]);
-					indexes.Add(indices[3]);
-					indexes.Add(indices[2]);
+					if (indices[0] != indices[2] && indices[2] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[3]);
+						indexes.Add(indices[2]);
+					}
 				}
 				else
 				{
-					indexes.Add(indices[0]);
-					indexes.Add(indices[3]);
-					indexes.Add(indices[1]);
+					if (indices[0] != indices[1] && indices[1] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[3]);
+						indexes.Add(indices[1]);
+					}
 
-					indexes.Add(indices[0]);
-					indexes.Add(indices[2]);
-					indexes.Add(indices[3]);
+					if (indices[0] != indices[2] && indices[2] != indices[3])
+					{
+						indexes.Add(indices[0]);
+						indexes.Add(indices[2]);
+						indexes.Add(indices[3]);
+					}
 				}
 			}
 		}
