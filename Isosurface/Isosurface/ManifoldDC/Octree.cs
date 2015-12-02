@@ -1,4 +1,18 @@
-﻿using System;
+﻿/* This is a 3D Manifold Dual Contouring implementation
+ * It's a heavy work in progress with debug and testing code everywhere, along with comments that don't match.
+ * But it's the only published implementation out there at this time, so it's better than nothing.
+ * When finished, it will be cleaned up and properly documented.
+ * 
+ * Current issues:
+ * - When performing vertex clustering, if a matching vertex isn't found for specific edges and we discard that vertex from the surface,
+ *   it prevents simplification due to that vertex most likely being stored as an independent surface, inaccurately.
+ * - When not discarding the vertex, simplification yields results similar to regular dual contouring, but separate surfaces can lose
+ *   merge and the genus of the surface may be lost.
+ *   
+ * TODO is to fix the above so it maintains the genus of all surfaces and allows maximum simplification.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -37,6 +51,7 @@ namespace Isosurface.ManifoldDC
 
 	public class OctreeNode
 	{
+		public int index = 0;
 		public Vector3 position;
 		public int size;
 		public OctreeNode[] children;
@@ -59,12 +74,14 @@ namespace Isosurface.ManifoldDC
 
 		public void ConstructBase(int size, float error, ref List<VertexPositionColorNormal> vertices)
 		{
+			this.index = 0;
 			this.position = Vector3.Zero;
 			this.size = size;
 			this.type = NodeType.Internal;
 			this.children = new OctreeNode[8];
 			this.vertices = new Vertex[0];
-			ConstructNodes(error, ref vertices);
+			int n_index = 1;
+			ConstructNodes(error, ref vertices, ref n_index);
 		}
 
 		public void GenerateVertexBuffer(List<VertexPositionColorNormal> vertices)
@@ -97,10 +114,10 @@ namespace Isosurface.ManifoldDC
 			}
 		}
 
-		public bool ConstructNodes(float error, ref List<VertexPositionColorNormal> vertices)
+		public bool ConstructNodes(float error, ref List<VertexPositionColorNormal> vertices, ref int n_index)
 		{
 			if (size == 1)
-				return ConstructLeaf(error, ref vertices);
+				return ConstructLeaf(error, ref vertices, ref n_index);
 
 			type = NodeType.Internal;
 			int child_size = size / 2;
@@ -108,24 +125,26 @@ namespace Isosurface.ManifoldDC
 
 			for (int i = 0; i < 8; i++)
 			{
+				this.index = n_index++;
 				Vector3 child_pos = Utilities.TCornerDeltas[i];
 				children[i] = new OctreeNode(position + child_pos * (float)child_size, child_size, NodeType.Internal);
 
-				bool b = children[i].ConstructNodes(error, ref vertices);
+				bool b = children[i].ConstructNodes(error, ref vertices, ref n_index);
 				if (b)
 					has_children = true;
-				//else
-				//	children[i] = null;
+				else
+					children[i] = null;
 			}
 
 			return has_children;
 		}
 
-		public bool ConstructLeaf(float error, ref List<VertexPositionColorNormal> vertices)
+		public bool ConstructLeaf(float error, ref List<VertexPositionColorNormal> vertices, ref int index)
 		{
 			if (size != 1)
 				return false;
 
+			this.index = index++;
 			type = NodeType.Leaf;
 			int corners = 0;
 			float[] samples = new float[8];
@@ -326,6 +345,7 @@ namespace Isosurface.ManifoldDC
 			int[] indices = { -1, -1, -1, -1 };
 			bool flip = false;
 			bool sign_changed = false;
+			int v_count = 0;
 			//return;
 
 			for (int i = 0; i < 4; i++)
@@ -345,8 +365,15 @@ namespace Isosurface.ManifoldDC
 					sign_changed = ((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0));
 				}
 
+				//if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
+				//	continue;
+
 				//find the vertex index
 				int index = 0;
+				bool skip = false;
+				if (nodes[i].corners == 179)
+				{
+				}
 				for (int k = 0; k < 16; k++)
 				{
 					int e = Utilities.TransformedEdgesTable[nodes[i].corners, k];
@@ -356,11 +383,18 @@ namespace Isosurface.ManifoldDC
 						continue;
 					}
 					if (e == -2)
+					{
+						skip = true;
 						break;
+					}
 					if (e == edge)
 						break;
 				}
 
+				if (skip)
+					continue;
+
+				v_count++;
 				if (index >= nodes[i].vertices.Length)
 					return;
 				Vertex v = nodes[i].vertices[index];
@@ -379,6 +413,9 @@ namespace Isosurface.ManifoldDC
 				//sign_changed = true;
 			}
 
+			if (v_count > 0 && v_count < 4)
+			{
+			}
 
 			/*
 			 * Next generate the triangles.
@@ -390,7 +427,7 @@ namespace Isosurface.ManifoldDC
 				int count = 0;
 				if (!flip)
 				{
-					if (indices[0] != indices[1] && indices[1] != indices[3])
+					if (indices[0] != -1 && indices[1] != -1 && indices[2] != -1 && indices[0] != indices[1] && indices[1] != indices[3])
 					{
 						indexes.Add(indices[0]);
 						indexes.Add(indices[1]);
@@ -398,7 +435,7 @@ namespace Isosurface.ManifoldDC
 						count++;
 					}
 
-					if (indices[0] != indices[2] && indices[2] != indices[3])
+					if (indices[0] != -1 && indices[2] != -1 && indices[3] != -1 && indices[0] != indices[2] && indices[2] != indices[3])
 					{
 						indexes.Add(indices[0]);
 						indexes.Add(indices[3]);
@@ -408,7 +445,7 @@ namespace Isosurface.ManifoldDC
 				}
 				else
 				{
-					if (indices[0] != indices[1] && indices[1] != indices[3])
+					if (indices[0] != -1 && indices[3] != -1 && indices[1] != -1 && indices[0] != indices[1] && indices[1] != indices[3])
 					{
 						indexes.Add(indices[0]);
 						indexes.Add(indices[3]);
@@ -416,7 +453,7 @@ namespace Isosurface.ManifoldDC
 						count++;
 					}
 
-					if (indices[0] != indices[2] && indices[2] != indices[3])
+					if (indices[0] != -1 && indices[2] != -1 && indices[3] != -1 && indices[0] != indices[2] && indices[2] != indices[3])
 					{
 						indexes.Add(indices[0]);
 						indexes.Add(indices[2]);
@@ -493,11 +530,7 @@ namespace Isosurface.ManifoldDC
 
 
 
-			if (size == 16 && position.X == 0 && position.Y == 16 && position.Z == 16)
-			{
-			}
-
-			if (size == 8 && position.X == 8 && position.Y == 16 && position.Z == 16)
+			if (index == 31681)
 			{
 			}
 
@@ -534,12 +567,7 @@ namespace Isosurface.ManifoldDC
 			{
 			}
 
-			int highest_index = -1;
-			foreach (Vertex v in collected_vertices)
-			{
-				if (v.surface_index > highest_index)
-					highest_index = v.surface_index;
-			}
+			int highest_index = surface_index;
 
 			if (highest_index == -1)
 				highest_index = 0;
@@ -622,7 +650,7 @@ namespace Isosurface.ManifoldDC
 							continue;
 						}
 					}
-					
+
 
 					foreach (Vertex v in collected_vertices)
 					{
@@ -657,10 +685,7 @@ namespace Isosurface.ManifoldDC
 
 		public static void ClusterFace(OctreeNode[] nodes, int direction, ref int surface_index, List<Vertex> collected_vertices)
 		{
-			if (nodes[0] == null || nodes[1] == null)
-				return;
-
-			if (nodes[0].type != NodeType.Leaf || nodes[1].type != NodeType.Leaf)
+			if ((nodes[0] != null && nodes[0].type != NodeType.Leaf) || (nodes[1] != null && nodes[1].type != NodeType.Leaf))
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -668,6 +693,8 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 2; j++)
 					{
+						if (nodes[j] == null)
+							continue;
 						if (nodes[j].type == NodeType.Leaf)
 							face_nodes[j] = nodes[j];
 						else
@@ -689,6 +716,8 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
+						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]] == null)
+							continue;
 						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]];
 						else
@@ -702,10 +731,7 @@ namespace Isosurface.ManifoldDC
 
 		public static void ClusterEdge(OctreeNode[] nodes, int direction, ref int surface_index, List<Vertex> collected_vertices)
 		{
-			if (nodes[0] == null || nodes[1] == null || nodes[2] == null || nodes[3] == null)
-				return;
-
-			if (nodes[0].type == NodeType.Leaf && nodes[1].type == NodeType.Leaf && nodes[2].type == NodeType.Leaf && nodes[3].type == NodeType.Leaf)
+			if ((nodes[0] == null || nodes[0].type == NodeType.Leaf) && (nodes[1] == null || nodes[1].type == NodeType.Leaf) && (nodes[2] == null || nodes[2].type == NodeType.Leaf) && (nodes[3] == null || nodes[3].type == NodeType.Leaf))
 			{
 				ClusterIndexes(nodes, direction, ref surface_index, collected_vertices);
 			}
@@ -717,6 +743,8 @@ namespace Isosurface.ManifoldDC
 
 					for (int j = 0; j < 4; j++)
 					{
+						if (nodes[j] == null)
+							continue;
 						if (nodes[j].type == NodeType.Leaf)
 							edge_nodes[j] = nodes[j];
 						else
@@ -730,15 +758,39 @@ namespace Isosurface.ManifoldDC
 
 		public static void ClusterIndexes(OctreeNode[] nodes, int direction, ref int max_surface_index, List<Vertex> collected_vertices)
 		{
+			if (nodes[0] == null && nodes[1] == null && nodes[2] == null && nodes[3] == null)
+				return;
+
 			Vertex[] vertices = new Vertex[4];
 			int v_count = 0;
+			int node_count = 0;
 
 			for (int i = 0; i < 4; i++)
 			{
+				if (nodes[i] == null)
+					continue;
+				node_count++;
+				if (nodes[i].vertices.Length > 1)
+				{
+				}
 				int edge = Utilities.TProcessEdgeMask[direction, i];
+
+				int c1 = Utilities.TEdgePairs[edge, 0];
+				int c2 = Utilities.TEdgePairs[edge, 1];
+
+				int m1 = (nodes[i].corners >> c1) & 1;
+				int m2 = (nodes[i].corners >> c2) & 1;
+				if (nodes[0] != null && nodes[1] != null && nodes[2] != null && nodes[3] != null)
+				{
+					//if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
+					//	continue;
+				}
+				//if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
+				//	continue;
 
 				//find the vertex index
 				int index = 0;
+				bool skip = false;
 				for (int k = 0; k < 16; k++)
 				{
 					int e = Utilities.TransformedEdgesTable[nodes[i].corners, k];
@@ -748,22 +800,32 @@ namespace Isosurface.ManifoldDC
 						continue;
 					}
 					if (e == -2)
+					{
+						if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
+							skip = true;
 						break;
+					}
 					if (e == edge)
 						break;
 				}
 
-				if (index < nodes[i].vertices.Length)
+				if (!skip && index < nodes[i].vertices.Length)
 				{
 					vertices[i] = nodes[i].vertices[index];
 					while (vertices[i].parent != null)
 						vertices[i] = vertices[i].parent;
+					if (i > v_count)
+					{
+					}
 					v_count++;
 				}
 			}
 
-			//if (v_count < 4)
-			//	return;
+			if (v_count == 0)
+				return;
+			if (node_count != v_count)
+			{
+			}
 
 			if (!(vertices[0] != vertices[1] && vertices[1] != vertices[2] && vertices[2] != vertices[3]))
 			{
@@ -771,6 +833,7 @@ namespace Isosurface.ManifoldDC
 			}
 
 			int surface_index = -1;
+
 			for (int i = 0; i < 4; i++)
 			{
 				if (vertices[i] == null)
@@ -789,6 +852,7 @@ namespace Isosurface.ManifoldDC
 
 			if (surface_index == -1)
 				surface_index = max_surface_index++;
+
 			for (int i = 0; i < 4; i++)
 			{
 				if (vertices[i] == null)

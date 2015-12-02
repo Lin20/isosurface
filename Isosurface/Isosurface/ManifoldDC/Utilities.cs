@@ -158,7 +158,12 @@ namespace Isosurface.ManifoldDC
 			{ 11, 10, 9, 8}
 		};
 
-		public static int[,] TProcessEdgeMask = { { 3, 2, 1, 0 }, { 7, 5, 6, 4 }, { 11, 10, 9, 8 } };
+		public static int[,] TProcessEdgeMask =
+		{
+			{ 3, 2, 1, 0 },
+			{ 7, 5, 6, 4 }, 
+			{ 11, 10, 9, 8 }
+		};
 
 		/* These tables courtesy of http://stackoverflow.com/questions/16638711/dual-marching-cubes-table */
 
