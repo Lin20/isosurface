@@ -47,6 +47,12 @@ namespace Isosurface.ManifoldDC
 			normal = Vector3.Zero;
 			surface_index = -1;
 		}
+
+		public override string ToString()
+		{
+			return "Surface = " + surface_index + ", parent = " + (parent == null ? "false" : "true");
+			//return base.ToString();
+		}
 	}
 
 	public class OctreeNode
@@ -61,6 +67,12 @@ namespace Isosurface.ManifoldDC
 
 		public OctreeNode()
 		{
+		}
+
+		public override string ToString()
+		{
+			return "Index = " + index + ", size = " + size;
+			//return base.ToString();
 		}
 
 		public OctreeNode(Vector3 position, int size, NodeType type)
@@ -102,7 +114,7 @@ namespace Isosurface.ManifoldDC
 
 				for (int i = 0; i < this.vertices.Length; i++)
 				{
-					if (this.vertices[i] == null || this.vertices[i].parent != null)
+					if (this.vertices[i] == null)
 						continue;
 					this.vertices[i].index = vertices.Count;
 					Vector3 nc = this.vertices[i].normal * 0.5f + Vector3.One * 0.5f;
@@ -237,6 +249,9 @@ namespace Isosurface.ManifoldDC
 						children[i].ProcessCell(indexes, tri_count);
 				}
 
+				if (index == 31681)
+				{
+				}
 				for (int i = 0; i < 12; i++)
 				{
 					OctreeNode[] face_nodes = new OctreeNode[2];
@@ -393,16 +408,22 @@ namespace Isosurface.ManifoldDC
 
 				if (skip)
 					continue;
+				if (nodes[i].index == 30733)
+				{
+				}
 
 				v_count++;
 				if (index >= nodes[i].vertices.Length)
 					return;
 				Vertex v = nodes[i].vertices[index];
-				if (v.parent == null)
+				Vertex highest = v;
+				while (highest.parent != null)
 				{
+					if (highest.parent.collapsible)
+						highest = v = highest.parent;
+					else
+						highest = highest.parent;
 				}
-				while (v.parent != null)
-					v = v.parent;
 
 				//Vector3 p = v.qef.Solve(1e-6f, 4, 1e-6f);
 				indices[i] = v.index;
@@ -481,6 +502,8 @@ namespace Isosurface.ManifoldDC
 			}
 		}
 
+		public static Random rnd = new Random();
+
 		/*
 		 * Cell stage
 		 */
@@ -533,6 +556,12 @@ namespace Isosurface.ManifoldDC
 			if (index == 31681)
 			{
 			}
+			if (index == 61440)
+			{
+			}
+			if (index == 7715)
+			{
+			}
 
 			/*
 			 * Find all the surfaces inside the children that cross the 6 Euclidean edges and the vertices that connect to them
@@ -550,6 +579,7 @@ namespace Isosurface.ManifoldDC
 				ClusterFace(face_nodes, Utilities.TEdgePairs[i, 2], ref surface_index, collected_vertices);
 			}
 
+
 			for (int i = 0; i < 6; i++)
 			{
 				OctreeNode[] edge_nodes = 
@@ -559,11 +589,16 @@ namespace Isosurface.ManifoldDC
 						children[Utilities.TCellProcEdgeMask[i, 2]],
 						children[Utilities.TCellProcEdgeMask[i, 3]]
 					};
-
+				if (size == 4 && i == 1)
+				{
+				}
 				ClusterEdge(edge_nodes, Utilities.TCellProcEdgeMask[i, 4], ref surface_index, collected_vertices);
 			}
 
 			if (size == 16 && position.X == 0 && position.Y == 16 && position.Z == 16)
+			{
+			}
+			if (index == 61440)
 			{
 			}
 
@@ -589,6 +624,9 @@ namespace Isosurface.ManifoldDC
 					}
 				}
 			}
+
+			//if (surface_index == 0 && highest_index > 1)
+			//	return;
 
 			if (highest_index == 7)
 			{
@@ -638,26 +676,37 @@ namespace Isosurface.ManifoldDC
 					new_vertex.normal = normal;
 					new_vertex.qef = qef;
 					new_vertices.Add(new_vertex);
+					//new_vertex.index = rnd.Next();
 
 					qef.Solve(1e-6f, 4, 1e-6f);
 					float err = qef.GetError();
-					if (err <= error)
-						clustered_count++;
-					//if (count > 1)
-					{
-						if (err > error)
-						{
-							continue;
-						}
-					}
+					new_vertex.collapsible = err <= error;
+					clustered_count++;
 
+					if (count > 4)
+					{
+					}
 
 					foreach (Vertex v in collected_vertices)
 					{
 						if (v.surface_index == i)
 						{
-							v.parent = new_vertex;
-							v.surface_index = -1;
+							Vertex p = v;
+							//p.surface_index = -1;
+							while (p.parent != null)
+							{
+								p = p.parent;
+								//p.surface_index = -1;
+								if (p == p.parent)
+								{
+									p.parent = null;
+									break;
+								}
+							}
+							if (p != new_vertex)
+								p.parent = new_vertex;
+							else
+								p.parent = null;
 						}
 					}
 				}
@@ -667,14 +716,16 @@ namespace Isosurface.ManifoldDC
 				return;
 			}
 
-			if (clustered_count == 0)
+			if (new_vertices.Count >= collected_vertices.Count)
+			{
+			}
+
+			//if (clustered_count <= 0)
 			{
 				foreach (Vertex v2 in collected_vertices)
 				{
 					v2.surface_index = -1;
-					v2.parent = null;
 				}
-				return;
 			}
 
 			//this.type = NodeType.Collapsed;
@@ -685,7 +736,10 @@ namespace Isosurface.ManifoldDC
 
 		public static void ClusterFace(OctreeNode[] nodes, int direction, ref int surface_index, List<Vertex> collected_vertices)
 		{
-			if ((nodes[0] != null && nodes[0].type != NodeType.Leaf) || (nodes[1] != null && nodes[1].type != NodeType.Leaf))
+			if (nodes[0] == null || nodes[1] == null)
+				return;
+
+			if (nodes[0].type != NodeType.Leaf || nodes[1].type != NodeType.Leaf)
 			{
 				for (int i = 0; i < 4; i++)
 				{
@@ -695,7 +749,7 @@ namespace Isosurface.ManifoldDC
 					{
 						if (nodes[j] == null)
 							continue;
-						if (nodes[j].type == NodeType.Leaf)
+						if (nodes[j].type != NodeType.Internal)
 							face_nodes[j] = nodes[j];
 						else
 							face_nodes[j] = nodes[j].children[Utilities.TFaceProcFaceMask[direction, i, j]];
@@ -703,35 +757,35 @@ namespace Isosurface.ManifoldDC
 
 					ClusterFace(face_nodes, Utilities.TFaceProcFaceMask[direction, i, 2], ref surface_index, collected_vertices);
 				}
+			}
 
-				int[,] orders =
+			int[,] orders =
 				{
 					{ 0, 0, 1, 1 },
 					{ 0, 1, 0, 1 },
 				};
 
-				for (int i = 0; i < 4; i++)
+			for (int i = 0; i < 4; i++)
+			{
+				OctreeNode[] edge_nodes = new OctreeNode[4];
+
+				for (int j = 0; j < 4; j++)
 				{
-					OctreeNode[] edge_nodes = new OctreeNode[4];
-
-					for (int j = 0; j < 4; j++)
-					{
-						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]] == null)
-							continue;
-						if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type == NodeType.Leaf)
-							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]];
-						else
-							edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].children[Utilities.TFaceProcEdgeMask[direction, i, 1 + j]];
-					}
-
-					ClusterEdge(edge_nodes, Utilities.TFaceProcEdgeMask[direction, i, 5], ref surface_index, collected_vertices);
+					if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]] == null)
+						continue;
+					if (nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].type != NodeType.Internal)
+						edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]];
+					else
+						edge_nodes[j] = nodes[orders[Utilities.TFaceProcEdgeMask[direction, i, 0], j]].children[Utilities.TFaceProcEdgeMask[direction, i, 1 + j]];
 				}
+
+				ClusterEdge(edge_nodes, Utilities.TFaceProcEdgeMask[direction, i, 5], ref surface_index, collected_vertices);
 			}
 		}
 
 		public static void ClusterEdge(OctreeNode[] nodes, int direction, ref int surface_index, List<Vertex> collected_vertices)
 		{
-			if ((nodes[0] == null || nodes[0].type == NodeType.Leaf) && (nodes[1] == null || nodes[1].type == NodeType.Leaf) && (nodes[2] == null || nodes[2].type == NodeType.Leaf) && (nodes[3] == null || nodes[3].type == NodeType.Leaf))
+			if ((nodes[0] == null || nodes[0].type != NodeType.Internal) && (nodes[1] == null || nodes[1].type != NodeType.Internal) && (nodes[2] == null || nodes[2].type != NodeType.Internal) && (nodes[3] == null || nodes[3].type != NodeType.Internal))
 			{
 				ClusterIndexes(nodes, direction, ref surface_index, collected_vertices);
 			}
@@ -769,22 +823,21 @@ namespace Isosurface.ManifoldDC
 			{
 				if (nodes[i] == null)
 					continue;
+				if (nodes[i].size > 1)
+				{
+				}
 				node_count++;
 				if (nodes[i].vertices.Length > 1)
 				{
 				}
-				int edge = Utilities.TProcessEdgeMask[direction, i];
 
+				int edge = Utilities.TProcessEdgeMask[direction, i];
 				int c1 = Utilities.TEdgePairs[edge, 0];
 				int c2 = Utilities.TEdgePairs[edge, 1];
 
 				int m1 = (nodes[i].corners >> c1) & 1;
 				int m2 = (nodes[i].corners >> c2) & 1;
-				if (nodes[0] != null && nodes[1] != null && nodes[2] != null && nodes[3] != null)
-				{
-					//if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
-					//	continue;
-				}
+
 				//if (!((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0)))
 				//	continue;
 
@@ -811,6 +864,12 @@ namespace Isosurface.ManifoldDC
 
 				if (!skip && index < nodes[i].vertices.Length)
 				{
+					if (nodes[i].index == 30733)
+					{
+					}
+					if (nodes[i].index == 12)
+					{
+					}
 					vertices[i] = nodes[i].vertices[index];
 					while (vertices[i].parent != null)
 						vertices[i] = vertices[i].parent;
@@ -836,18 +895,25 @@ namespace Isosurface.ManifoldDC
 
 			for (int i = 0; i < 4; i++)
 			{
-				if (vertices[i] == null)
+				Vertex v = vertices[i];
+				if (v == null)
 					continue;
-				if (vertices[i].surface_index != -1)
+				//while (v != null)
+				//{
+				if (v.surface_index != -1)
 				{
-					if (surface_index != -1 && surface_index != vertices[i].surface_index)
+					if (surface_index != -1 && surface_index != v.surface_index)
 					{
-						AssignSurface(collected_vertices, vertices[i].surface_index, surface_index);
+						AssignSurface(collected_vertices, v.surface_index, surface_index);
 					}
 					else if (surface_index == -1)
-						surface_index = vertices[i].surface_index;
+						surface_index = v.surface_index;
 					//break;
 				}
+
+				//break;
+				//v = v.parent;
+				//}
 			}
 
 			if (surface_index == -1)
@@ -855,13 +921,20 @@ namespace Isosurface.ManifoldDC
 
 			for (int i = 0; i < 4; i++)
 			{
-				if (vertices[i] == null)
+				Vertex v = vertices[i];
+				if (v == null)
 					continue;
-				if (vertices[i].surface_index == -1)
+				//while (v.parent != null)
+				//	v = v.parent;
+				//while (v != null)
+				//{
+				if (v.surface_index == -1)
 				{
-					collected_vertices.Add(vertices[i]);
+					collected_vertices.Add(v);
 				}
-				vertices[i].surface_index = surface_index;
+				v.surface_index = surface_index;
+				//v = v.parent;
+				//}
 			}
 		}
 

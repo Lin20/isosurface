@@ -147,6 +147,8 @@ namespace Isosurface.QEFProper
 
 			Vector3 atax = this.ata.Vmul(pos);
 			last_error = Vector3.Dot(pos, atax) - 2 * Vector3.Dot(pos, this.atb) + this.data.btb;
+			if (float.IsNaN(last_error))
+				last_error = 0;
 			return last_error;
 		}
 
@@ -170,7 +172,13 @@ namespace Isosurface.QEFProper
 			atb = atb - tmpv;
 			x = Vector3.Zero;
 			float result = SVD.SolveSymmetric(this.ata, this.atb, ref  this.x, svd_tol, svd_sweeps, pinv_tol);
-			x += MassPoint;
+			if (float.IsNaN(result))
+			{
+				x = MassPoint;
+
+			}
+			else
+				x += MassPoint;
 			this.SetAtb();
 			//output = x;
 			this.hasSolution = true;

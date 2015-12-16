@@ -50,7 +50,7 @@ namespace Isosurface
 		public int QualityIndex { get; set; }
 		public int AlgorithmIndex { get; set; }
 
-		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f };
+		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f, 100.0f, 250.0f, 500.0f, 1000.0f, 2500.0f };
 
 		/* Add new algorithms here to see them by pressing Tab */
 		public Type[] AlgorithmTypes = { typeof(ManifoldDC.MDC3D) /*,typeof(DMCNeilson.DMCN)*//*, typeof(DualMarchingSquaresNeilson.DMSNeilson), typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D)*/, typeof(AdaptiveDualContouring.ADC3D) };

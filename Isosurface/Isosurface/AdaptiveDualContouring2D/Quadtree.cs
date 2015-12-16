@@ -226,7 +226,7 @@ namespace Isosurface.AdaptiveDualContouring2D
 				}
 
 				int min_size = 100000;
-				bool sign_change = false;
+				bool sign_changed = false;
 				QuadtreeNode[] nodes = new QuadtreeNode[] { node1, node2 };
 
 				for (int i = 0; i < 2; i++)
@@ -237,20 +237,19 @@ namespace Isosurface.AdaptiveDualContouring2D
 
 					int m1 = (nodes[i].draw_info.corners >> c1) & 1;
 					int m2 = (nodes[i].draw_info.corners >> c2) & 1;
-					
-				/* We have connectivity issues, so sign change is improperly set to favor connectivity
-				 * As a result, cells that shouldn't connect do
-				 * TODO: Fix
-				 */
-					//if (nodes[i].size <= min_size)
+
+					/* We have connectivity issues, so sign change is improperly set to favor connectivity
+					 * As a result, cells that shouldn't connect do
+					 * TODO: Fix
+					 */
+					if (nodes[i].size < min_size)
 					{
 						min_size = nodes[i].size;
-						if (!sign_change)
-							sign_change = m1 != m2;
+						sign_changed = ((m1 == 0 && m2 != 0) || (m1 != 0 && m2 == 0));
 					}
 				}
 
-				if (sign_change)
+				if (sign_changed)
 				{
 					indexes.Add(node1.draw_info.index);
 					indexes.Add(node2.draw_info.index);

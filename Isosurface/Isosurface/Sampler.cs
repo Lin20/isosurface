@@ -177,26 +177,40 @@ namespace Isosurface
 			//return Math.Min(Cuboid(pos + new Vector3(0, 2, 0), new Vector3(16, 4, 16)), Sphere(pos - new Vector3(0,8,0), 4));
 			//return Math.Min(Cuboid(pos), Cuboid(pos - new Vector3(4, 4, 4)));
 			//return Math.Min(Sphere(pos), Math.Min(Sphere(pos + new Vector3(16, 16, 16)), Sphere(pos - new Vector3(16, 16, 16))));
-			return Cuboid(pos + new Vector3(3, 3, 3));
+			//return Cuboid(pos + new Vector3(3, 3, 3));
 			//return Math.Min(Cuboid(pos + new Vector3(5, 5, 5), 2), Cuboid(pos - new Vector3(4, 4, 4), 4));
-			return Sphere(pos - new Vector3(1, 1, 1), 4);
-			return CappedCylinder(pos - new Vector3(Resolution / 2.0f), new Vector2(8, 8f)) - 0.5f;
-			return Math.Min(Sphere(pos + new Vector3(1, 1, 1), 4), Sphere(pos - new Vector3(4, 4, 4), 4));
-			//return Math.Max(Cuboid(pos), -Sphere(pos + new Vector3(8, 8, 8)));
+			//return Sphere(pos - new Vector3(1, 1, 1), 4);
+			//return Math.Min(Sphere(pos + new Vector3(1, 1, 1), 4), Sphere(pos - new Vector3(4, 4, 4), 4));
+			float sdx = sdTorusX(pos - new Vector3(Resolution / 2.0f, Resolution / 2.0f, Resolution / 2.75f), new Vector2(Resolution / 4, Resolution / 10));
+			float sdy = sdTorusY(pos - new Vector3(Resolution / 2.0f, Resolution / 2.0f, Resolution / 1.75f), new Vector2(Resolution / 4, Resolution / 10));
+			float sdz = sdTorusZ(pos - Vector3.One * Resolution / 2.0f, new Vector2(Resolution / 4, Resolution / 10));
+			return Math.Min(sdx, sdy);
+			return Math.Max(Cuboid(pos), -Sphere(pos + new Vector3(8, 8, 8)));
 			return Cuboid(pos) * SphereR(pos);
 			return Cuboid(pos);
 		}
 
 		public static float Noise(Vector3 pos)
 		{
-			float r = 0.05f;
+			float r = 0.1f;
 			return SimplexNoise.Noise(pos.X * r, pos.Y * r, pos.Z * r);
 		}
 
-		public static float sdTorus(Vector3 pos)
+		public static float sdTorusX(Vector3 p, Vector2 t)
 		{
-			Vector2 t = new Vector2(Resolution / 8, Resolution / 8);
-			Vector2 q = new Vector2(new Vector2(pos.X, pos.Z).Length() - t.X, pos.Y);
+			Vector2 q = new Vector2((float)Math.Abs(Math.Sqrt(p.Y * p.Y + p.Z * p.Z)) - t.X, p.X);
+			return q.Length() - t.Y;
+		}
+
+		public static float sdTorusY(Vector3 p, Vector2 t)
+		{
+			Vector2 q = new Vector2((float)Math.Abs(Math.Sqrt(p.X * p.X + p.Z * p.Z)) - t.X, p.Y);
+			return q.Length() - t.Y;
+		}
+
+		public static float sdTorusZ(Vector3 p, Vector2 t)
+		{
+			Vector2 q = new Vector2((float)Math.Abs(Math.Sqrt(p.X * p.X + p.Y * p.Y)) - t.X, p.Z);
 			return q.Length() - t.Y;
 		}
 
@@ -208,7 +222,20 @@ namespace Isosurface
 			return f;
 		}
 
-		
+		public static float Cylinder(Vector3 p, Vector3 h)
+		{
+			Vector2 a = new Vector2(p.X, p.Z);
+			Vector2 b = new Vector2(h.X, h.Y);
+			return (a - b).Length() - h.Z;
+		}
+
+		public static float Blend(float a, float b, float k)
+		{
+			a = (float)Math.Pow(a, k);
+			b = (float)Math.Pow(b, k);
+			return (float)Math.Pow((a * b) / (a + b), 1.0f / k);
+		}
+
 		public static Vector3 GetNormal(Vector3 v)
 		{
 			//v = new Vector3((int)Math.Round(v.X), (int)Math.Round(v.Y), (int)Math.Round(v.Z));

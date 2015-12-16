@@ -16,7 +16,7 @@ namespace Isosurface.ManifoldDC
 	public class MDC3D : ISurfaceAlgorithm
 	{
 		public override string Name { get { return "Manifold Dual Contouring"; } }
-		public const bool FlatShading = true;
+		public const bool FlatShading = false;
 
 		OctreeNode tree;
 
@@ -142,7 +142,7 @@ namespace Isosurface.ManifoldDC
 
 		public void ConstructTreeGrid(OctreeNode node)
 		{
-			if (node == null || node.type == NodeType.Leaf)
+			if (node == null)
 				return;
 			VertexPositionColor[] vs = new VertexPositionColor[24];
 			int x = (int)node.position.X;
@@ -273,6 +273,7 @@ namespace Isosurface.ManifoldDC
 					}
 				}
 
+				if(new_vertices.Count > 0)
 				VertexBuffer.SetData<VertexPositionColorNormal>(new_vertices.ToArray());
 				VertexCount = new_vertices.Count;
 			}
