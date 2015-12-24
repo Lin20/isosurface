@@ -16,12 +16,24 @@ namespace Isosurface.ManifoldDC
 	public class MDC3D : ISurfaceAlgorithm
 	{
 		public override string Name { get { return "Manifold Dual Contouring"; } }
-		public const bool FlatShading = false;
+		public const bool FlatShading = true;
+
+		private bool enforce_manifold;
+		public bool EnforceManifold
+		{
+			get { return enforce_manifold; }
+			set { enforce_manifold = value; OctreeNode.EnforceManifold = value; }
+		}
+
+		public override string ExtraInformation
+		{
+			get { return "Manifold: " + enforce_manifold.ToString(); }
+		}
 
 		OctreeNode tree;
 
 		public MDC3D(GraphicsDevice device, int resolution, int size)
-			: base(device, resolution, size, true, !FlatShading)
+			: base(device, resolution, size, true, !FlatShading, 2097152)
 		{
 			for (int i = 0; i < 256; i++)
 			{
@@ -36,6 +48,10 @@ namespace Isosurface.ManifoldDC
 					found[Utilities.TransformedEdgesTable[i, k]] = true;
 				}
 			}
+
+			EnforceManifold = true;
+			OctreeNode.EnforceManifold = EnforceManifold;
+
 			/*int[,] associated =
 			{
 				{ 0, 0 },
@@ -118,24 +134,28 @@ namespace Isosurface.ManifoldDC
 		{
 			Stopwatch watch = new Stopwatch();
 
-			Vertices.Clear();
-			tree = new OctreeNode();
-
 			watch.Start();
-			List<VertexPositionColorNormal> vs = new List<VertexPositionColorNormal>();
-			tree.ConstructBase(Resolution, threshold, ref vs);
-			tree.ClusterCellBase(threshold);
-			watch.Stop();
-			//Vertices = vs.ToList();
+			if (tree == null)
+			{
+				Vertices.Clear();
+				tree = new OctreeNode();
+				List<VertexPositionColorNormal> vs = new List<VertexPositionColorNormal>();
 
-			tree.GenerateVertexBuffer(Vertices);
+				tree.ConstructBase(Resolution, threshold, ref vs);
+				tree.ClusterCellBase(threshold);
+				//Vertices = vs.ToList();
 
-			if (Vertices.Count > 0)
-				VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
-			VertexCount = Vertices.Count;
+				tree.GenerateVertexBuffer(Vertices);
+
+				if (Vertices.Count > 0)
+					VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
+				VertexCount = Vertices.Count;
+			}
+
 			OutlineLocation = 0;
-			ConstructTreeGrid(tree);
-			CalculateIndexes();
+			//ConstructTreeGrid(tree);
+			CalculateIndexes(threshold);
+			watch.Stop();
 
 			return watch.ElapsedMilliseconds;
 		}
@@ -215,7 +235,7 @@ namespace Isosurface.ManifoldDC
 			}
 		}
 
-		public void CalculateIndexes()
+		public void CalculateIndexes(float threshold)
 		{
 			if (!FlatShading)
 				Indices.Clear();
@@ -223,7 +243,7 @@ namespace Isosurface.ManifoldDC
 				Indices = new List<int>();
 			List<int> tri_count = new List<int>();
 
-			tree.ProcessCell(Indices, tri_count);
+			tree.ProcessCell(Indices, tri_count, threshold);
 			if (!FlatShading)
 			{
 				IndexCount = Indices.Count;
@@ -273,8 +293,8 @@ namespace Isosurface.ManifoldDC
 					}
 				}
 
-				if(new_vertices.Count > 0)
-				VertexBuffer.SetData<VertexPositionColorNormal>(new_vertices.ToArray());
+				if (new_vertices.Count > 0)
+					VertexBuffer.SetData<VertexPositionColorNormal>(new_vertices.ToArray());
 				VertexCount = new_vertices.Count;
 			}
 		}

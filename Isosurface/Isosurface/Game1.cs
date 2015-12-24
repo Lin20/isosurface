@@ -40,6 +40,30 @@ namespace Isosurface
 		Wireframe = 2
 	}
 
+	public struct RawModel
+	{
+		public string Filename;
+		public int Width;
+		public int Height;
+		public int Length;
+		public float IsoLevel;
+		public bool Flip;
+		public int Bytes;
+		public bool Mrc;
+
+		public RawModel(string filename, int width, int height, int length, float isolevel, bool flip = true, int bytes = 1)
+		{
+			Filename = filename;
+			Width = width;
+			Height = height;
+			Length = length;
+			IsoLevel = isolevel;
+			Flip = flip;
+			Bytes = bytes;
+			Mrc = filename.EndsWith(".mrc");
+		}
+	}
+
 	public class Game1 : Microsoft.Xna.Framework.Game
 	{
 		GraphicsDeviceManager graphics;
@@ -49,8 +73,24 @@ namespace Isosurface
 
 		public int QualityIndex { get; set; }
 		public int AlgorithmIndex { get; set; }
+		public int ModelIndex { get; set; }
 
-		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f, 100.0f, 250.0f, 500.0f, 1000.0f, 2500.0f };
+		public float[] Qualities = { 0.0f, 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.4f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 5.0f, 10.0f, 25.0f, 50.0f, 100.0f, 250.0f, 500.0f, 1000.0f, 2500.0f, 5000.0f, 10000.0f, 25000.0f, 50000.0f, 100000.0f };
+
+		public RawModel[] Models = 
+		{
+			new RawModel("BostonTeapot", 178, 256, 256, 0.1f),
+			new RawModel("engine", 128, 256, 256, 0.2f),
+			new RawModel("bonsai", 256, 256, 256, 0.15f, false),
+			new RawModel("lobster", 56, 324, 301, 0.18f),
+			new RawModel("horse.mrc", 256,256,256, 1, false),
+			new RawModel("dragon.mrc", 256,256,256, 1, false),
+			new RawModel("dragon2.mrc", 256,256,256, 1, false),
+			new RawModel("star.mrc", 256,256,256, 1, false),
+			new RawModel("table.mrc", 256,256,256, 1, false),
+			new RawModel("piano.mrc", 256,256,256, 1, false),
+			new RawModel("statue.mrc", 256,256,256, 1, false)
+		};
 
 		/* Add new algorithms here to see them by pressing Tab */
 		public Type[] AlgorithmTypes = { typeof(ManifoldDC.MDC3D) /*,typeof(DMCNeilson.DMCN)*//*, typeof(DualMarchingSquaresNeilson.DMSNeilson), typeof(DualMarchingSquares.DMS), typeof(UniformDualContouring2D.DC), typeof(AdaptiveDualContouring2D.ADC), typeof(UniformDualContouring.DC3D)*/, typeof(AdaptiveDualContouring.ADC3D) };
@@ -59,7 +99,7 @@ namespace Isosurface
 		private Camera Camera { get; set; }
 
 		public const int TileSize = 14;
-		public const int Resolution = 32;
+		public const int Resolution = 64;
 
 		public DrawModes DrawMode { get; set; }
 		public RasterizerState RState { get; set; }
@@ -75,11 +115,13 @@ namespace Isosurface
 		{
 			//DualMarchingSquaresNeilson.MarchingSquaresTableGenerator.PrintCaseTable();
 
-
+			ModelIndex = -1;
+			if (ModelIndex > -1)
+				Sampler.ReadData(Models[ModelIndex], Resolution);
 
 			float n = SimplexNoise.Noise(0, 0);
 			RState = new RasterizerState();
-			RState.CullMode = CullMode.CullClockwiseFace;
+			RState.CullMode = (Sampler.ImageData != null ? CullMode.CullCounterClockwiseFace : CullMode.CullClockwiseFace);
 			GraphicsDevice.RasterizerState = RState;
 			graphics.PreferredBackBufferWidth = 1600;
 			graphics.PreferredBackBufferHeight = 900;
@@ -90,12 +132,12 @@ namespace Isosurface
 
 			effect = new BasicEffect(GraphicsDevice);
 
-			QualityIndex = 1;
+			QualityIndex = 0;
 			NextAlgorithm();
 
 			effect.VertexColorEnabled = true;
 
-			Camera = new Camera(GraphicsDevice, new Vector3(-Resolution, Resolution, -Resolution) , 1f);
+			Camera = new Camera(GraphicsDevice, new Vector3(-Resolution, Resolution, -Resolution), 1f);
 			if (SelectedAlgorithm.Is3D)
 			{
 				Camera.Update(true);
@@ -103,7 +145,7 @@ namespace Isosurface
 			}
 			last_state = Keyboard.GetState();
 
-			DrawMode = Isosurface.DrawModes.Mesh | DrawModes.Outline;
+			DrawMode = Isosurface.DrawModes.Mesh;
 			WireframeMode = WireframeModes.Fill;
 
 			base.Initialize();
@@ -124,15 +166,12 @@ namespace Isosurface
 		public void SetAlgorithm(Type t)
 		{
 			SelectedAlgorithm = (ISurfaceAlgorithm)Activator.CreateInstance(t, GraphicsDevice, Resolution, TileSize);
-			if (QualityIndex == 0)
-				QualityIndex = Qualities.Length;
-			QualityIndex--;
-			NextQuality();
+			UpdateQuality();
 
 			if (SelectedAlgorithm.Is3D)
 			{
 				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up);
-				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 100.0f);
+				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 1000.0f);
 				effect.EnableDefaultLighting();
 			}
 			else
@@ -142,7 +181,7 @@ namespace Isosurface
 			}
 		}
 
-		private void NextQuality()
+		private void UpdateQuality()
 		{
 			long time = SelectedAlgorithm.Contour(Qualities[QualityIndex]);
 			System.Text.StringBuilder text = new System.Text.StringBuilder();
@@ -155,12 +194,14 @@ namespace Isosurface
 			else
 				text.Append((SelectedAlgorithm.VertexCount / (SelectedAlgorithm.Is3D ? 3 : 2)) + " " + topology_type);
 
+			if (SelectedAlgorithm.ExtraInformation != "")
+				text.Append(", " + SelectedAlgorithm.ExtraInformation);
+
 			text.Append(" (" + time + " ms)");
-			
+
 			text.Append(" - Quality " + Qualities[QualityIndex]);
 
 			Window.Title = text.ToString();
-			QualityIndex = (QualityIndex + 1) % Qualities.Length;
 		}
 
 		protected override void UnloadContent()
@@ -175,11 +216,20 @@ namespace Isosurface
 
 			if (!last_state.IsKeyDown(Keys.Space) && Keyboard.GetState().IsKeyDown(Keys.Space))
 			{
-				NextQuality();
+				QualityIndex = (QualityIndex + 1) % Qualities.Length;
+				UpdateQuality();
 			}
 			if (!last_state.IsKeyDown(Keys.Tab) && Keyboard.GetState().IsKeyDown(Keys.Tab))
 			{
 				NextAlgorithm();
+			}
+
+			if (!last_state.IsKeyDown(Keys.F) && Keyboard.GetState().IsKeyDown(Keys.F))
+			{
+				SelectedAlgorithm = (ISurfaceAlgorithm)Activator.CreateInstance(SelectedAlgorithm.GetType(), GraphicsDevice, Resolution, TileSize);
+				ModelIndex = (ModelIndex + 1) % Models.Length;
+				Sampler.ReadData(Models[ModelIndex], Resolution);
+				UpdateQuality();
 			}
 
 			if (!last_state.IsKeyDown(Keys.D1) && Keyboard.GetState().IsKeyDown(Keys.D1))
@@ -216,6 +266,15 @@ namespace Isosurface
 				Camera.MouseLocked = !Camera.MouseLocked;
 			}
 
+			if (!last_state.IsKeyDown(Keys.M) && Keyboard.GetState().IsKeyDown(Keys.M))
+			{
+				if (SelectedAlgorithm.GetType() == typeof(ManifoldDC.MDC3D))
+				{
+					((ManifoldDC.MDC3D)SelectedAlgorithm).EnforceManifold = !((ManifoldDC.MDC3D)SelectedAlgorithm).EnforceManifold;
+					UpdateQuality();
+				}
+			}
+
 			if (SelectedAlgorithm.Is3D)
 			{
 				Camera.Update(true);
@@ -229,8 +288,8 @@ namespace Isosurface
 
 		protected override void Draw(GameTime gameTime)
 		{
-			if(SelectedAlgorithm.Is3D)
-			GraphicsDevice.Clear(Color.DimGray);
+			if (SelectedAlgorithm.Is3D)
+				GraphicsDevice.Clear(Color.DimGray);
 			else
 				GraphicsDevice.Clear(Color.WhiteSmoke);
 

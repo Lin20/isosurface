@@ -32,14 +32,14 @@ namespace Isosurface.AdaptiveDualContouring
 
 			watch.Start();
 			tree.Build(Vector3.Zero, Resolution, threshold, Vertices, Size);
-			watch.Stop();
 
 			tree.GenerateVertexBuffer(Vertices);
 			if (Vertices.Count > 0)
 				VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
 			VertexCount = Vertices.Count;
-			ConstructTreeGrid(tree);
+			//ConstructTreeGrid(tree);
 			CalculateIndexes();
+			watch.Stop();
 
 			return watch.ElapsedMilliseconds;
 		}

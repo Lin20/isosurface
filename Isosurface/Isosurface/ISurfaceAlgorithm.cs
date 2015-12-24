@@ -41,7 +41,9 @@ namespace Isosurface
 		public int IndexCount { get; protected set; }
 		public int OutlineLocation { get; protected set; }
 
-		public ISurfaceAlgorithm(GraphicsDevice device, int resolution, int size, bool _3d, bool indexed = true, int vertex_size = 262144, int index_size = 4000000)
+		public virtual string ExtraInformation { get { return ""; } }
+
+		public ISurfaceAlgorithm(GraphicsDevice device, int resolution, int size, bool _3d, bool indexed = true, int vertex_size = 524288, int index_size = 4000000)
 		{
 			Device = device;
 			Resolution = resolution;

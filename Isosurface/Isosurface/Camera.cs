@@ -55,7 +55,7 @@ namespace Isosurface
 		{
 			float speed = 0.05f;
 			if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
-				speed *= 10.0f;
+				speed *= 10.0f * (float)(Game1.Resolution / 32);
 			if (Keyboard.GetState().IsKeyDown(Keys.W))
 				Position += Vector3.Transform(Vector3.Forward * speed, Rotation);
 			else if (Keyboard.GetState().IsKeyDown(Keys.S))

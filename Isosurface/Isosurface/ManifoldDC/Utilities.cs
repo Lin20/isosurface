@@ -165,6 +165,61 @@ namespace Isosurface.ManifoldDC
 			{ 11, 10, 9, 8 }
 		};
 
+		/*
+		 * This table has one group entry per each octree cell.
+		 * Depending on which index the cell is, it has external edges.
+		 * The entries in the group map out which edges are external edges in the child, which map to its parent's external edges.
+		 * For example, child 0, which would be group 0, has edges 0, 3, and 8 as external, whereas the other 9 are internal.
+		 */
+		public static int[,] ExternalEdges =
+		{
+			{ 0, 3, 8 },
+			{ 2, 3, 11},
+			{ 4, 7, 8 },
+			{ 6, 7, 11 },
+			{ 0, 1, 9 },
+			{ 1, 2, 10 },
+			{ 4, 5, 9 },
+			{ 5, 6, 10 }
+
+			//{ 0, -1, -1, 3, -1, -1, -1, -1, 8, -1, -1, -1 }, //0, 3, 8
+			//{ -1, -1, 2, 3, -1, -1, -1, -1, -1, -1, -1, 11 } //2, 3, 11
+		};
+
+		public static int[,] TExternalEdges =
+		{
+			{ 0, 8, 4 },
+			{ 1, 8, 5 },
+			{ 2, 9, 4 },
+			{ 3, 9, 5 },
+			{ 0, 10, 6 },
+			{ 10, 1, 7 },
+			{ 2, 11, 6 },
+			{ 11, 3, 7 }
+		};
+
+		public static int[,] TInternalEdges =
+		{
+			{ 1, 2, 3, 5, 6, 7, 9, 10, 11 },
+			{ 0, 2, 3, 4, 6, 7, 9, 10, 11 },
+			{ 0, 1, 3, 5, 6, 7, 8, 10, 11 },
+			{ 0, 1, 2, 4, 6, 7, 8, 10, 11 },
+			{ 1, 2, 3, 4, 5, 7, 8, 9, 11 },
+			{ 0, 2, 3, 4, 5, 6, 8, 9, 11 },
+			{ 0, 1, 3, 4, 5, 7, 8, 9, 10 },
+			{ 0, 1, 2, 4, 5, 6, 8, 9, 10 }
+		};
+
+		public static int[,] TFaces =
+		{
+			{ 0, 6, 2, 4 },
+			{ 1, 7, 3, 5 },
+			{ 0, 10, 1, 8 },
+			{ 2, 11, 3, 9 },
+			{ 4, 8, 5, 9 },
+			{ 6, 10, 7, 11 }
+		};
+
 		/* These tables courtesy of http://stackoverflow.com/questions/16638711/dual-marching-cubes-table */
 
 		#region EdgesTable

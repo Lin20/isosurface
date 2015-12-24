@@ -148,7 +148,7 @@ namespace Isosurface.QEFProper
 			Vector3 atax = this.ata.Vmul(pos);
 			last_error = Vector3.Dot(pos, atax) - 2 * Vector3.Dot(pos, this.atb) + this.data.btb;
 			if (float.IsNaN(last_error))
-				last_error = 0;
+				last_error = 10000;
 			return last_error;
 		}
 
