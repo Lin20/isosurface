@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
+using System.Diagnostics;
 
 namespace Isosurface.QEFProper
 {
@@ -74,7 +75,7 @@ namespace Isosurface.QEFProper
 			return o;
 		}
 
-		public void Rot01(float c, float s)
+		public void Rot01(ref float c, ref float s)
 		{
 			Mat3.CalcSymmetricGivensCoefficients(m00, m01, m11, out c, out s);
 			float cc = c * c;
@@ -84,7 +85,7 @@ namespace Isosurface.QEFProper
 						   ss * m00 + mix + cc * m11, s * m02 + c * m12, m22);
 		}
 
-		public void Rot02(float c, float s)
+		public void Rot02(ref float c, ref float s)
 		{
 			Mat3.CalcSymmetricGivensCoefficients(m00, m02, m22, out c, out s);
 			float cc = c * c;
@@ -94,7 +95,7 @@ namespace Isosurface.QEFProper
 					   m11, s * m01 + c * m12, ss * m00 + mix + cc * m22);
 		}
 
-		public void Rot12(float c, float s)
+		public void Rot12(ref float c, ref float s)
 		{
 			Mat3.CalcSymmetricGivensCoefficients(m11, m12, m22, out c, out s);
 			float cc = c * c;

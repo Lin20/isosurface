@@ -489,7 +489,7 @@ namespace Isosurface
 			return noiseSum / (float)totalIterations;
 		}
 
-		public static float SeamlessNoise(float x, float y, float dx, float dy, float xyOffset, int octaves, float pers)
+		public static float Noise(float x, float y, float z, float dx, float dy, float dz, float xyOffset, int octaves, float pers)
 		{
 			if (octaves <= 0)
 				return SeamlessNoise(x, y, dx, dy, xyOffset);
@@ -513,6 +513,26 @@ namespace Isosurface
 			}
 
 			//noise /= max_amp;
+
+			return noise;
+		}
+
+		public static float Noise(float x, float y, float z, int octaves, float pers = 0.5f)
+		{
+			float max_amp = 0;
+			float amp = 1;
+			float noise = 0;
+			float freq = 1.0f;
+
+			for (int i = 0; i < octaves; i++)
+			{
+				noise += Noise(x * freq, y * freq, z * freq) * amp;
+				max_amp += amp;
+				amp *= pers;
+				freq *= 2.0f;
+			}
+
+			noise /= max_amp;
 
 			return noise;
 		}

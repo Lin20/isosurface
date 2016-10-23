@@ -121,9 +121,9 @@ namespace Isosurface.DualMarchingSquares
 				VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
 		}
 
-		public override void Draw(BasicEffect effect, bool enable_lighting = false, DrawModes mode = DrawModes.Mesh | DrawModes.Outline)
+		public override void Draw(Effect effect, bool enable_lighting = false, DrawModes mode = DrawModes.Mesh | DrawModes.Outline)
 		{
-			effect.LightingEnabled = false;
+			//effect.LightingEnabled = false;
 			if (OutlineLocation > 0 && (mode & DrawModes.Outline) != 0)
 			{
 				effect.CurrentTechnique.Passes[0].Apply();
@@ -147,12 +147,12 @@ namespace Isosurface.DualMarchingSquares
 
 			if (enable_lighting)
 			{
-				effect.LightingEnabled = true;
+				/*effect.LightingEnabled = true;
 				effect.PreferPerPixelLighting = true;
 				effect.SpecularPower = 64;
 				effect.SpecularColor = Color.Black.ToVector3();
 				effect.CurrentTechnique.Passes[0].Apply();
-				effect.AmbientLightColor = Color.Gray.ToVector3();
+				effect.AmbientLightColor = Color.Gray.ToVector3();*/
 			}
 
 			effect.CurrentTechnique.Passes[0].Apply();

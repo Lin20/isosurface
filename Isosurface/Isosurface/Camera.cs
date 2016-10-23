@@ -17,7 +17,7 @@ namespace Isosurface
 		public Vector3 Position { get; set; }
 
 		public Matrix View { get; private set; }
-		public Matrix Projection { get; private set; }
+		public Matrix Projection { get; set; }
 		public BoundingFrustum Frustrum { get; private set; }
 
 		public Matrix Rotation { get; private set; }

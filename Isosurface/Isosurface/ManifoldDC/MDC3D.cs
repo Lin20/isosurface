@@ -18,6 +18,10 @@ namespace Isosurface.ManifoldDC
 		public override string Name { get { return "Manifold Dual Contouring"; } }
 		public const bool FlatShading = true;
 
+		private List<VertexPositionColorNormalNormal> VerticesDN { get; set; }
+
+		OctreeNode tree;
+
 		private bool enforce_manifold;
 		public bool EnforceManifold
 		{
@@ -29,8 +33,6 @@ namespace Isosurface.ManifoldDC
 		{
 			get { return "Manifold: " + enforce_manifold.ToString(); }
 		}
-
-		OctreeNode tree;
 
 		public MDC3D(GraphicsDevice device, int resolution, int size)
 			: base(device, resolution, size, true, !FlatShading, 2097152)
@@ -51,6 +53,15 @@ namespace Isosurface.ManifoldDC
 
 			EnforceManifold = true;
 			OctreeNode.EnforceManifold = EnforceManifold;
+			CustomWireframe = FlatShading;
+			SpecialShader = true;
+			SupportsDeferred = false;
+
+			VerticesDN = new List<VertexPositionColorNormalNormal>();
+			VertexBuffer = new DynamicVertexBuffer(device, VertexPositionColorNormalNormal.VertexDeclaration, 735468, BufferUsage.None);
+
+			WireframeBuffer = new VertexBuffer(device, VertexPositionColor.VertexDeclaration, 524288, BufferUsage.None);
+			WireframeIndexBuffer = new IndexBuffer(device, IndexElementSize.ThirtyTwoBits, 1048576, BufferUsage.None);
 
 			/*int[,] associated =
 			{
@@ -137,19 +148,19 @@ namespace Isosurface.ManifoldDC
 			watch.Start();
 			if (tree == null)
 			{
-				Vertices.Clear();
+				VerticesDN.Clear();
 				tree = new OctreeNode();
-				List<VertexPositionColorNormal> vs = new List<VertexPositionColorNormal>();
+				List<VertexPositionColorNormalNormal> vs = new List<VertexPositionColorNormalNormal>();
 
-				tree.ConstructBase(Resolution, threshold, ref vs);
-				tree.ClusterCellBase(threshold);
-				//Vertices = vs.ToList();
+				tree.ConstructBase(Resolution, 0, ref vs);
+				tree.ClusterCellBase(0);
+				//VerticesDN = vs.ToList();
 
-				tree.GenerateVertexBuffer(Vertices);
+				tree.GenerateVertexBuffer(VerticesDN);
 
-				if (Vertices.Count > 0)
-					VertexBuffer.SetData<VertexPositionColorNormal>(Vertices.ToArray());
-				VertexCount = Vertices.Count;
+				if (VerticesDN.Count > 0)
+					VertexBuffer.SetData<VertexPositionColorNormalNormal>(VerticesDN.ToArray());
+				VertexCount = VerticesDN.Count;
 			}
 
 			OutlineLocation = 0;
@@ -249,57 +260,112 @@ namespace Isosurface.ManifoldDC
 				IndexCount = Indices.Count;
 				if (Indices.Count == 0)
 					return;
-			}
 
-			if (!FlatShading)
-			{
+				for (int i = 0; i < Indices.Count; i++)
+					Indices[i] = Indices[i] & 0xFFFFFFF;
 				IndexBuffer.SetData<int>(Indices.ToArray());
 			}
 			else
 			{
-				List<VertexPositionColorNormal> new_vertices = new List<VertexPositionColorNormal>();
+				List<VertexPositionColorNormalNormal> new_vertices = new List<VertexPositionColorNormalNormal>();
+				List<VertexPositionColor> wire_verts = new List<VertexPositionColor>();
+				List<int> wire_indexes = new List<int>();
+
 				int t_index = 0;
 				for (int i = 0; i < Indices.Count; i += 3)
 				{
 					int count = tri_count[t_index++];
 					Vector3 n = Vector3.Zero;
 					if (count == 1)
-						n = GetNormalQ(Vertices, Indices[i + 2], Indices[i + 0], Indices[i + 1]);
+						n = GetNormalQ(VerticesDN, Indices[i + 2] & 0xFFFFFFF, Indices[i + 0] & 0xFFFFFFF, Indices[i + 1] & 0xFFFFFFF);
 					else
-						n = GetNormalQ(Vertices, Indices[i + 2], Indices[i + 0], Indices[i + 1], Indices[i + 5], Indices[i + 3], Indices[i + 4]);
+						n = GetNormalQ(VerticesDN, Indices[i + 2] & 0xFFFFFFF, Indices[i + 0] & 0xFFFFFFF, Indices[i + 1] & 0xFFFFFFF, Indices[i + 5] & 0xFFFFFFF, Indices[i + 3] & 0xFFFFFFF, Indices[i + 4] & 0xFFFFFFF);
 					Vector3 nc = n * 0.5f + Vector3.One * 0.5f;
 					nc.Normalize();
 					Color c = new Color(nc);
 
-					VertexPositionColorNormal v0 = new VertexPositionColorNormal(Vertices[Indices[i + 0]].Position, c, n);
-					VertexPositionColorNormal v1 = new VertexPositionColorNormal(Vertices[Indices[i + 1]].Position, c, n);
-					VertexPositionColorNormal v2 = new VertexPositionColorNormal(Vertices[Indices[i + 2]].Position, c, n);
+					VertexPositionColorNormalNormal v0 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 0] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 0] & 0xFFFFFFF].Normal);
+					VertexPositionColorNormalNormal v1 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 1] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 1] & 0xFFFFFFF].Normal);
+					VertexPositionColorNormalNormal v2 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 2] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 2] & 0xFFFFFFF].Normal);
 
 					new_vertices.Add(v0);
 					new_vertices.Add(v1);
 					new_vertices.Add(v2);
 
+					int start = wire_verts.Count;
 					if (count > 1)
 					{
-						VertexPositionColorNormal v3 = new VertexPositionColorNormal(Vertices[Indices[i + 3]].Position, c, n);
-						VertexPositionColorNormal v4 = new VertexPositionColorNormal(Vertices[Indices[i + 4]].Position, c, n);
-						VertexPositionColorNormal v5 = new VertexPositionColorNormal(Vertices[Indices[i + 5]].Position, c, n);
+						VertexPositionColorNormalNormal v3 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 3] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 3] & 0xFFFFFFF].Normal);
+						VertexPositionColorNormalNormal v4 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 4] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 4] & 0xFFFFFFF].Normal);
+						VertexPositionColorNormalNormal v5 = new VertexPositionColorNormalNormal(VerticesDN[Indices[i + 5] & 0xFFFFFFF].Position, c, n, VerticesDN[Indices[i + 5] & 0xFFFFFFF].Normal);
 
 						new_vertices.Add(v3);
 						new_vertices.Add(v4);
 						new_vertices.Add(v5);
 
+						if (Indices[i] >= 0x10000000)
+						{
+							//0-2, 2-1, 1-4, 4-0
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 0] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 1] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 2] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 4] & 0xFFFFFFF].Position, c));
+							wire_indexes.Add(start + 0);
+							wire_indexes.Add(start + 2);
+							wire_indexes.Add(start + 2);
+							wire_indexes.Add(start + 1);
+							wire_indexes.Add(start + 1);
+							wire_indexes.Add(start + 3);
+							wire_indexes.Add(start + 3);
+							wire_indexes.Add(start + 0);
+						}
+						else
+						{
+							//0-1, 1-2, 2-5, 5-0
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 0] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 1] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 2] & 0xFFFFFFF].Position, c));
+							wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 5] & 0xFFFFFFF].Position, c));
+							wire_indexes.Add(start + 0);
+							wire_indexes.Add(start + 1);
+							wire_indexes.Add(start + 1);
+							wire_indexes.Add(start + 2);
+							wire_indexes.Add(start + 2);
+							wire_indexes.Add(start + 3);
+							wire_indexes.Add(start + 3);
+							wire_indexes.Add(start + 0);
+						}
+
 						i += 3;
+					}
+					else
+					{
+						wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 0] & 0xFFFFFFF].Position, c));
+						wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 1] & 0xFFFFFFF].Position, c));
+						wire_verts.Add(new VertexPositionColor(VerticesDN[Indices[i + 2] & 0xFFFFFFF].Position, c));
+						wire_indexes.Add(start + 0);
+						wire_indexes.Add(start + 1);
+						wire_indexes.Add(start + 1);
+						wire_indexes.Add(start + 2);
+						wire_indexes.Add(start + 2);
+						wire_indexes.Add(start + 0);
 					}
 				}
 
 				if (new_vertices.Count > 0)
-					VertexBuffer.SetData<VertexPositionColorNormal>(new_vertices.ToArray());
+					VertexBuffer.SetData<VertexPositionColorNormalNormal>(new_vertices.ToArray());
+				if (wire_verts.Count > 0)
+				{
+					WireframeBuffer.SetData<VertexPositionColor>(wire_verts.ToArray());
+					WireframeIndexBuffer.SetData<int>(wire_indexes.ToArray());
+				}
 				VertexCount = new_vertices.Count;
+				WireframeCount = wire_indexes.Count;
+				WireframeVertexCount = wire_verts.Count;
 			}
 		}
 
-		private Vector3 GetNormalQ(List<VertexPositionColorNormal> verts, params int[] indexes)
+		private Vector3 GetNormalQ(List<VertexPositionColorNormalNormal> verts, params int[] indexes)
 		{
 			Vector3 a = verts[indexes[2]].Position - verts[indexes[1]].Position;
 			Vector3 b = verts[indexes[2]].Position - verts[indexes[0]].Position;

@@ -29,19 +29,29 @@ namespace Isosurface
 
 		public virtual bool Is3D { get; protected set; }
 		public virtual bool IsIndexed { get; protected set; }
+		public virtual bool CustomWireframe { get; protected set; }
+		public virtual bool SpecialShader { get; protected set; }
 
-		public List<VertexPositionColorNormal> Vertices { get; protected set; }
+		public virtual List<VertexPositionColorNormal> Vertices { get; protected set; }
 		public List<int> Indices { get; protected set; }
 
 		public DynamicVertexBuffer VertexBuffer { get; set; }
 		public DynamicVertexBuffer OutlineBuffer { get; set; }
 		public DynamicIndexBuffer IndexBuffer { get; set; }
 
+		public VertexBuffer WireframeBuffer { get; set; }
+		public IndexBuffer WireframeIndexBuffer { get; set; }
+		public Effect WireframeEffect { get; set; }
+		public int WireframeCount { get; set; }
+		public int WireframeVertexCount { get; set; }
+
 		public int VertexCount { get; protected set; }
 		public int IndexCount { get; protected set; }
 		public int OutlineLocation { get; protected set; }
 
 		public virtual string ExtraInformation { get { return ""; } }
+
+		public virtual bool SupportsDeferred { get; protected set; }
 
 		public ISurfaceAlgorithm(GraphicsDevice device, int resolution, int size, bool _3d, bool indexed = true, int vertex_size = 524288, int index_size = 4000000)
 		{
@@ -51,6 +61,9 @@ namespace Isosurface
 
 			Is3D = _3d;
 			IsIndexed = indexed;
+			CustomWireframe = false;
+			SpecialShader = false;
+			SupportsDeferred = false;
 
 			VertexBuffer = new DynamicVertexBuffer(device, VertexPositionColorNormal.VertexDeclaration, vertex_size, BufferUsage.None);
 			OutlineBuffer = new DynamicVertexBuffer(device, VertexPositionColor.VertexDeclaration, index_size, BufferUsage.None);
@@ -65,9 +78,9 @@ namespace Isosurface
 
 		public abstract long Contour(float threshold);
 
-		public virtual void Draw(BasicEffect effect, bool enable_lighting = false, DrawModes mode = DrawModes.Mesh | DrawModes.Outline)
+		public virtual void Draw(Effect effect, bool enable_lighting = false, DrawModes mode = DrawModes.Mesh | DrawModes.Outline)
 		{
-			effect.LightingEnabled = false;
+			//effect.LightingEnabled = false;
 			if (OutlineLocation > 0 && (mode & DrawModes.Outline) != 0)
 			{
 				effect.CurrentTechnique.Passes[0].Apply();
@@ -83,15 +96,16 @@ namespace Isosurface
 
 			if (enable_lighting)
 			{
-				effect.LightingEnabled = true;
+				/*effect.LightingEnabled = true;
 				effect.PreferPerPixelLighting = true;
 				effect.SpecularPower = 64;
 				effect.SpecularColor = Color.Black.ToVector3();
 				effect.CurrentTechnique.Passes[0].Apply();
-				effect.AmbientLightColor = Color.Gray.ToVector3();
+				effect.AmbientLightColor = Color.Gray.ToVector3();*/
 			}
 
-			effect.CurrentTechnique.Passes[0].Apply();
+			if (effect != null)
+				effect.CurrentTechnique.Passes[0].Apply();
 			Device.SetVertexBuffer(VertexBuffer);
 			if (IsIndexed)
 			{
@@ -110,6 +124,24 @@ namespace Isosurface
 					Device.DrawPrimitives(PrimitiveType.LineList, 0, VertexCount / 2);
 			}
 			Device.SetVertexBuffer(null);
+		}
+
+		public virtual void DrawWireframe(Camera c, Effect e, Matrix world)
+		{
+			if (WireframeCount == 0)
+				return;
+			e.Parameters["World"].SetValue(world);
+			e.Parameters["View"].SetValue(c.View);
+			e.Parameters["Projection"].SetValue(c.Projection);
+			e.CurrentTechnique.Passes[0].Apply();
+
+			Device.Indices = WireframeIndexBuffer;
+			Device.SetVertexBuffer(WireframeBuffer);
+
+			Device.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, WireframeVertexCount, 0, WireframeCount / 2);
+
+			Device.SetVertexBuffer(null);
+			Device.Indices = null;
 		}
 	}
 }

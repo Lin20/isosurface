@@ -68,7 +68,10 @@ namespace Isosurface
 	{
 		GraphicsDeviceManager graphics;
 		SpriteBatch spriteBatch;
-		BasicEffect effect;
+		Effect dn_effect;
+		Effect reg_effect;
+		Effect wire_effect;
+		
 		KeyboardState last_state;
 
 		public int QualityIndex { get; set; }
@@ -104,6 +107,7 @@ namespace Isosurface
 		public DrawModes DrawMode { get; set; }
 		public RasterizerState RState { get; set; }
 		public WireframeModes WireframeMode { get; set; }
+		public DeferredShader DeferredRenderer { get; set; }
 
 		public Game1()
 		{
@@ -113,6 +117,8 @@ namespace Isosurface
 
 		protected override void Initialize()
 		{
+			AdvancingFrontVIS2006.AdvancingFrontVIS2006.GetIdealEdgeLength(0, (Resolution / 2 - 2), 0);
+
 			//DualMarchingSquaresNeilson.MarchingSquaresTableGenerator.PrintCaseTable();
 
 			ModelIndex = -1;
@@ -130,18 +136,29 @@ namespace Isosurface
 
 			IsMouseVisible = true;
 
-			effect = new BasicEffect(GraphicsDevice);
+			//effect = new BasicEffect(GraphicsDevice);
+			reg_effect = Content.Load<Effect>("ShaderRegular");
+			reg_effect.Parameters["ColorEnabled"].SetValue(true);
+			dn_effect = Content.Load<Effect>("ShaderDN");
+			dn_effect.Parameters["ColorEnabled"].SetValue(true);
+			wire_effect = Content.Load<Effect>("WireShader");
+
 
 			QualityIndex = 0;
 			NextAlgorithm();
 
-			effect.VertexColorEnabled = true;
+			//effect.VertexColorEnabled = true;
 
 			Camera = new Camera(GraphicsDevice, new Vector3(-Resolution, Resolution, -Resolution), 1f);
+			Camera.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 0.1f, 1000.0f);
 			if (SelectedAlgorithm.Is3D)
 			{
 				Camera.Update(true);
-				effect.View = Camera.View;
+				//effect.View = Camera.View;
+				reg_effect.Parameters["View"].SetValue(Camera.View);
+				reg_effect.Parameters["Projection"].SetValue(Camera.Projection);
+				dn_effect.Parameters["View"].SetValue(Camera.View);
+				dn_effect.Parameters["Projection"].SetValue(Camera.Projection);
 			}
 			last_state = Keyboard.GetState();
 
@@ -155,6 +172,8 @@ namespace Isosurface
 		{
 			// Create a new SpriteBatch, which can be used to draw textures.
 			spriteBatch = new SpriteBatch(GraphicsDevice);
+
+			DeferredRenderer = new DeferredShader(GraphicsDevice, Content, spriteBatch);
 		}
 
 		public void NextAlgorithm()
@@ -170,14 +189,18 @@ namespace Isosurface
 
 			if (SelectedAlgorithm.Is3D)
 			{
-				effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up);
+				/*effect.View = Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up);
 				effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight, 1.0f, 1000.0f);
-				effect.EnableDefaultLighting();
+				effect.EnableDefaultLighting();*/
+				Effect e = (SelectedAlgorithm.SpecialShader ? dn_effect : reg_effect);
+				e.Parameters["View"].SetValue(Matrix.CreateLookAt(new Vector3(-1, 1, 1) * (float)Resolution, Vector3.Zero, Vector3.Up));
+				if (Camera != null)
+					e.Parameters["Projection"].SetValue(Camera.Projection);
 			}
 			else
 			{
-				effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
-				effect.View = Matrix.Identity;
+				/*effect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+				effect.View = Matrix.Identity;*/
 			}
 		}
 
@@ -252,13 +275,13 @@ namespace Isosurface
 				else
 					WireframeMode = WireframeModes.Fill;
 
-				if (WireframeMode != (WireframeModes.Fill | WireframeModes.Wireframe))
+				/*if (WireframeMode != (WireframeModes.Fill | WireframeModes.Wireframe))
 				{
 					RState = new RasterizerState();
 					RState.CullMode = CullMode.None;
 					RState.FillMode = (WireframeMode == WireframeModes.Fill ? FillMode.Solid : FillMode.WireFrame);
 					GraphicsDevice.RasterizerState = RState;
-				}
+				}*/
 			}
 
 			if (!last_state.IsKeyDown(Keys.C) && Keyboard.GetState().IsKeyDown(Keys.C))
@@ -278,7 +301,8 @@ namespace Isosurface
 			if (SelectedAlgorithm.Is3D)
 			{
 				Camera.Update(true);
-				effect.View = Camera.View;
+				//effect.View = Camera.View;
+				(SelectedAlgorithm.SpecialShader ? dn_effect : reg_effect).Parameters["View"].SetValue(Camera.View);
 			}
 
 			last_state = Keyboard.GetState();
@@ -288,37 +312,55 @@ namespace Isosurface
 
 		protected override void Draw(GameTime gameTime)
 		{
+			if (SelectedAlgorithm.SupportsDeferred)
+			{
+				DeferredRenderer.Draw(SelectedAlgorithm, Camera);
+				return;
+			}
+
 			if (SelectedAlgorithm.Is3D)
 				GraphicsDevice.Clear(Color.DimGray);
 			else
 				GraphicsDevice.Clear(Color.WhiteSmoke);
 
-			if (SelectedAlgorithm.Is3D)
-				effect.World = Matrix.CreateTranslation(new Vector3(-Resolution / 2, -Resolution / 2, -Resolution / 2));
-			else
-				effect.World = Matrix.Identity;
+			Effect e = (SelectedAlgorithm.SpecialShader ? dn_effect : reg_effect);
 
-			if (SelectedAlgorithm.Is3D && WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
+			if (SelectedAlgorithm.Is3D)
+				e.Parameters["World"].SetValue(Matrix.CreateTranslation(new Vector3(-Resolution / 2, -Resolution / 2, -Resolution / 2)));
+			else
+				e.Parameters["World"].SetValue(Matrix.Identity);
+
+			if (SelectedAlgorithm.Is3D && (int)(WireframeMode & WireframeModes.Fill) != 0)
 			{
 				RasterizerState rs = new RasterizerState();
-				rs.CullMode = CullMode.None;
+				rs.CullMode = (Sampler.ImageData != null ? CullMode.CullCounterClockwiseFace : CullMode.CullClockwiseFace);
 				rs.FillMode = FillMode.Solid;
 				rs.DepthBias = 0;
 				GraphicsDevice.RasterizerState = rs;
 			}
 
-			SelectedAlgorithm.Draw(effect, false, DrawMode);
+			if (!SelectedAlgorithm.Is3D || WireframeMode != WireframeModes.Wireframe)
+				SelectedAlgorithm.Draw(e, false, DrawMode);
 
-			if (SelectedAlgorithm.Is3D && WireframeMode == (WireframeModes.Fill | WireframeModes.Wireframe))
+			if (SelectedAlgorithm.Is3D && (int)(WireframeMode & WireframeModes.Wireframe) != 0 && !SelectedAlgorithm.SupportsDeferred)
 			{
-				RasterizerState rs = new RasterizerState();
-				rs.CullMode = CullMode.None;
-				rs.FillMode = FillMode.WireFrame;
-				rs.DepthBias = -0.0001f;
-				GraphicsDevice.RasterizerState = rs;
-				effect.VertexColorEnabled = false;
-				SelectedAlgorithm.Draw(effect, false, DrawMode);
-				effect.VertexColorEnabled = true;
+				if (!SelectedAlgorithm.CustomWireframe)
+				{
+					RasterizerState rs = new RasterizerState();
+					rs.CullMode = (Sampler.ImageData != null ? CullMode.CullCounterClockwiseFace : CullMode.CullClockwiseFace);
+					rs.FillMode = FillMode.WireFrame;
+					//rs.DepthBias = -0.0001f;
+					GraphicsDevice.RasterizerState = rs;
+					e.Parameters["ColorEnabled"].SetValue(false);
+					SelectedAlgorithm.Draw(e, false, DrawMode);
+					e.Parameters["ColorEnabled"].SetValue(true);
+				}
+				else
+				{
+					//effect.Parameters["ColorEnabled"].SetValue(false);
+					SelectedAlgorithm.DrawWireframe(Camera, wire_effect, Matrix.CreateTranslation(new Vector3(-Resolution / 2, -Resolution / 2, -Resolution / 2)));
+					//effect.Parameters["ColorEnabled"].SetValue(true);
+				}
 			}
 
 			base.Draw(gameTime);

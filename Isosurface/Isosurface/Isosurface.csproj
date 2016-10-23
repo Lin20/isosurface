@@ -62,6 +62,9 @@
     <StartupObject>Isosurface.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="alglibnet2">
+      <HintPath>E:\Libraries\alglib\csharp\alglibnet2.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics">
       <HintPath>E:\Libraries\math.net\lib\net40\MathNet.Numerics.dll</HintPath>
     </Reference>
@@ -79,7 +82,9 @@
   <ItemGroup>
     <Compile Include="AdaptiveDualContouring2D\ADC.cs" />
     <Compile Include="AdaptiveDualContouring\ADC3D.cs" />
+    <Compile Include="AdvancingFront\AdvancingFrontVIS2006.cs" />
     <Compile Include="Camera.cs" />
+    <Compile Include="DeferredShader.cs" />
     <Compile Include="DMCNeilson\DMCN.cs" />
     <Compile Include="DMCNeilson\VertexPlacement.cs" />
     <Compile Include="DualMarchingSquaresNeilson\DMSNeilson.cs" />
@@ -95,6 +100,7 @@
     <Compile Include="QEFSolver\QEFSolver.cs" />
     <Compile Include="QEFSolver\SMat3.cs" />
     <Compile Include="QEFSolver\SVD.cs" />
+    <Compile Include="Quad.cs" />
     <Compile Include="UniformDualContouring2D\DC.cs" />
     <Compile Include="UniformDualContouring\DC3D.cs" />
     <Compile Include="DualMarchingSquares\DMS.cs" />
@@ -108,6 +114,7 @@
     <Compile Include="AdaptiveDualContouring2D\Quadtree.cs" />
     <Compile Include="Sampler.cs" />
     <Compile Include="SimplexNoise.cs" />
+    <Compile Include="VertexPositionColorNormalNormal.cs" />
     <Compile Include="VertexPositionColorNormal.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +144,13 @@
       <ProductName>Windows Installer 4.5</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Content1\Content.contentproj">
+      <Project>{6D7B5300-F178-450E-A78D-4735AFD6C273}</Project>
+      <Name>Content</Name>
+      <XnaReferenceType>Content</XnaReferenceType>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

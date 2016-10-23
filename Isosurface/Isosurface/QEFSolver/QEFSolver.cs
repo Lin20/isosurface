@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
+using System.Diagnostics;
 
 namespace Isosurface.QEFProper
 {
@@ -45,6 +46,9 @@ namespace Isosurface.QEFProper
 			massPoint_x += rhs.massPoint_x;
 			massPoint_y += rhs.massPoint_y;
 			massPoint_z += rhs.massPoint_z;
+			if (rhs.numPoints == 0)
+			{
+			}
 			numPoints += rhs.numPoints;
 		}
 
@@ -132,8 +136,8 @@ namespace Isosurface.QEFProper
 
 		public float GetError()
 		{
-			if (!hasSolution)
-				return 65535;
+			//if (!hasSolution)
+			//	return 65535;
 			return GetError(x);
 		}
 
@@ -146,9 +150,21 @@ namespace Isosurface.QEFProper
 			}
 
 			Vector3 atax = this.ata.Vmul(pos);
-			last_error = Vector3.Dot(pos, atax) - 2 * Vector3.Dot(pos, this.atb) + this.data.btb;
+			last_error = Vector3.Dot(pos, atax) - 2.0f * Vector3.Dot(pos, this.atb) + this.data.btb;
+			//last_error *= last_error;
 			if (float.IsNaN(last_error))
 				last_error = 10000;
+
+			/*float total = 0;
+			for (int i = 0; i < this.data.numPoints; i++)
+			{
+				Vector3 d = pos - Intersections[i];
+				float dot = Normals[i].X * d.X + Normals[i].Y * d.Y + Normals[i].Z * d.Z;
+				total += dot * dot;
+			}
+			last_error = total;*/
+
+			//Debug.Assert(last_error >= 0.0f);
 			return last_error;
 		}
 
@@ -165,13 +181,14 @@ namespace Isosurface.QEFProper
 
 			MassPoint = new Vector3(this.data.massPoint_x, this.data.massPoint_y,
 								this.data.massPoint_z);
-			MassPoint /= (float)data.numPoints;
+			MassPoint /= (float)this.data.numPoints;
 			this.SetAta();
 			this.SetAtb();
 			Vector3 tmpv = ata.Vmul(MassPoint);
 			atb = atb - tmpv;
 			x = Vector3.Zero;
-			float result = SVD.SolveSymmetric(this.ata, this.atb, ref  this.x, svd_tol, svd_sweeps, pinv_tol);
+			float result = SVD.SolveSymmetric(this.ata, this.atb, ref this.x, svd_tol, svd_sweeps, pinv_tol);
+			//MassPoint /= (float)data.numPoints;
 			if (float.IsNaN(result))
 			{
 				x = MassPoint;
@@ -179,10 +196,13 @@ namespace Isosurface.QEFProper
 			}
 			else
 				x += MassPoint;
+			last_error = result;
+			Debug.Assert(result >= 0.0f);
 			this.SetAtb();
 			//output = x;
 			this.hasSolution = true;
 			//return result;
+
 			return x;
 			return MassPoint;
 		}

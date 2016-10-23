@@ -92,7 +92,7 @@ namespace Isosurface.ManifoldDC
 			this.vertices = new Vertex[0];
 		}
 
-		public void ConstructBase(int size, float error, ref List<VertexPositionColorNormal> vertices)
+		public void ConstructBase(int size, float error, ref List<VertexPositionColorNormalNormal> vertices)
 		{
 			this.index = 0;
 			this.position = Vector3.Zero;
@@ -102,10 +102,10 @@ namespace Isosurface.ManifoldDC
 			this.vertices = new Vertex[0];
 			this.child_index = 0;
 			int n_index = 1;
-			ConstructNodes(vertices, ref n_index, 1);
+			ConstructNodes(vertices, ref n_index, 4);
 		}
 
-		public void GenerateVertexBuffer(List<VertexPositionColorNormal> vertices)
+		public void GenerateVertexBuffer(List<VertexPositionColorNormalNormal> vertices)
 		{
 			if (type != NodeType.Leaf)
 			{
@@ -121,6 +121,9 @@ namespace Isosurface.ManifoldDC
 				if (vertices == null || this.vertices.Length == 0)
 					return;
 
+				if (index == 639)
+				{
+				}
 				for (int i = 0; i < this.vertices.Length; i++)
 				{
 					if (this.vertices[i] == null)
@@ -129,13 +132,13 @@ namespace Isosurface.ManifoldDC
 					Vector3 nc = this.vertices[i].normal * 0.5f + Vector3.One * 0.5f;
 					nc.Normalize();
 					Color c = new Color(nc);
-					vertices.Add(new VertexPositionColorNormal(this.vertices[i].qef.Solve(1e-6f, 4, 1e-6f), c, this.vertices[i].normal));
+					vertices.Add(new VertexPositionColorNormalNormal(this.vertices[i].qef.Solve(1e-6f, 4, 1e-6f), c, this.vertices[i].normal, this.vertices[i].normal));
 
 				}
 			}
 		}
 
-		public bool ConstructNodes(List<VertexPositionColorNormal> vertices, ref int n_index, int threaded = 0)
+		public bool ConstructNodes(List<VertexPositionColorNormalNormal> vertices, ref int n_index, int threaded = 0)
 		{
 			if (size == 1)
 				return ConstructLeaf(ref vertices, ref n_index);
@@ -189,7 +192,7 @@ namespace Isosurface.ManifoldDC
 			return has_children;
 		}
 
-		public bool ConstructLeaf(ref List<VertexPositionColorNormal> vertices, ref int index)
+		public bool ConstructLeaf(ref List<VertexPositionColorNormalNormal> vertices, ref int index)
 		{
 			if (size != 1)
 				return false;
@@ -244,6 +247,9 @@ namespace Isosurface.ManifoldDC
 				this.vertices[i].qef = new QEFProper.QEFSolver();
 				Vector3 normal = Vector3.Zero;
 				int[] ei = new int[12];
+				if (this.position.X == 6 && this.position.Y == 0 && this.position.Z == 3)
+				{
+				}
 				while (v_edges[i][k] != -1)
 				{
 					ei[v_edges[i][k]] = 1;
@@ -266,7 +272,12 @@ namespace Isosurface.ManifoldDC
 				this.vertices[i].eis = ei;
 				this.vertices[i].in_cell = this.child_index;
 				this.vertices[i].face_prop2 = true;
-				//VertexPositionColorNormal vert = new VertexPositionColorNormal();
+				if (this.index == 1028)
+				{
+				}
+				this.vertices[i].qef.Solve(1e-6f, 4, 1e-6f);
+				this.vertices[i].error = this.vertices[i].qef.GetError();
+				//VertexPositionColorNormalNormal vert = new VertexPositionColorNormalNormal();
 				//vert.Position = this.vertices[i].qef.Solve(1e-6f, 4, 1e-6f) + position;
 				//vert.Normal = Sampler.GetNormal(vert.Position);
 				//vert.Color = new Color(vert.Normal * 0.5f + Vector3.One * 0.5f);
@@ -463,7 +474,7 @@ namespace Isosurface.ManifoldDC
 				Vertex highest = v;
 				while (highest.parent != null)
 				{
-					if (highest.parent.collapsible || (highest.parent.error <= threshold && (!EnforceManifold || (highest.parent.euler == 1 && highest.parent.face_prop2))))
+					if ((highest.parent.error <= threshold && (!EnforceManifold || (highest.parent.euler == 1 && highest.parent.face_prop2))))
 						highest = v = highest.parent;
 					else
 						highest = highest.parent;
@@ -512,17 +523,17 @@ namespace Isosurface.ManifoldDC
 				{
 					if (indices[0] != -1 && indices[3] != -1 && indices[1] != -1 && indices[0] != indices[1] && indices[1] != indices[3])
 					{
-						indexes.Add(indices[0]);
-						indexes.Add(indices[3]);
-						indexes.Add(indices[1]);
+						indexes.Add(0x10000000 | indices[0]);
+						indexes.Add(0x10000000 | indices[3]);
+						indexes.Add(0x10000000 | indices[1]);
 						count++;
 					}
 
 					if (indices[0] != -1 && indices[2] != -1 && indices[3] != -1 && indices[0] != indices[2] && indices[2] != indices[3])
 					{
-						indexes.Add(indices[0]);
-						indexes.Add(indices[2]);
-						indexes.Add(indices[3]);
+						indexes.Add(0x10000000 | indices[0]);
+						indexes.Add(0x10000000 | indices[2]);
+						indexes.Add(0x10000000 | indices[3]);
 						count++;
 					}
 				}
@@ -604,6 +615,10 @@ namespace Isosurface.ManifoldDC
 			{
 			}
 			if (index == 7715)
+			{
+			}
+
+			if ((int)position.X == 12 && (int)position.Y == 18 && (int)position.Z == 26)
 			{
 			}
 
@@ -818,6 +833,9 @@ namespace Isosurface.ManifoldDC
 			//for (int i = 0; i < 8; i++)
 			//	children[i] = null;
 			this.vertices = new_vertices.ToArray();
+			if (this.vertices.Length > 4)
+			{
+			}
 		}
 
 		public static void GatherVertices(OctreeNode n, List<Vertex> dest, ref int surface_index)

@@ -14,7 +14,8 @@ namespace Isosurface.QEFProper
 				return;
 
 			float c = 0, s = 0;
-			vtav.Rot01(c, s);
+			vtav.Rot01(ref c, ref s);
+			c = 0; s = 0;
 			v.Rot01_post(c, s);
 		}
 
@@ -24,7 +25,8 @@ namespace Isosurface.QEFProper
 				return;
 
 			float c = 0, s = 0;
-			vtav.Rot02(c, s);
+			vtav.Rot02(ref c, ref s);
+			c = 0; s = 0;
 			v.Rot02_post(c, s);
 		}
 		public static void Rotate12(ref SMat3 vtav, ref Mat3 v)
@@ -33,7 +35,8 @@ namespace Isosurface.QEFProper
 				return;
 
 			float c = 0, s = 0;
-			vtav.Rot12(c, s);
+			vtav.Rot12(ref c, ref s);
+			c = 0; s = 0;
 			v.Rot12_post(c, s);
 		}
 
